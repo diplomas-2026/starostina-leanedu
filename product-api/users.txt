@@ -1,0 +1,4 @@
+email=admin@lean.local; password=admin123; role=ADMIN
+email=teacher@lean.local; password=teacher123; role=TEACHER
+email=student1@lean.local; password=student123; role=STUDENT
+email=student2@lean.local; password=student123; role=STUDENT

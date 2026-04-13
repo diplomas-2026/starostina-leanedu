@@ -50,45 +50,43 @@ jobs:
 
           if [ ! -f .env ]; then
             JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
-            cat > .env <<ENV
-            DB_URL=jdbc:postgresql://postgres:5432/product_db
-            DB_USER=product
-            DB_PASSWORD=product
-            APP_JWT_SECRET=${JWT_SECRET}
-            GIGACHAT_API_KEY=demo-key
-            GIGACHAT_BASE_URL=https://gigachat.devices.sberbank.ru/api/v1
-            GIGACHAT_MODEL=GigaChat
-            ENV
+            printf '%s\n' \
+              "DB_URL=jdbc:postgresql://postgres:5432/product_db" \
+              "DB_USER=product" \
+              "DB_PASSWORD=product" \
+              "APP_JWT_SECRET=${JWT_SECRET}" \
+              "GIGACHAT_API_KEY=demo-key" \
+              "GIGACHAT_BASE_URL=https://gigachat.devices.sberbank.ru/api/v1" \
+              "GIGACHAT_MODEL=GigaChat" > .env
           fi
 
           if [ ! -f docker-compose.runtime.yml ]; then
-            cat > docker-compose.runtime.yml <<YAML
-            services:
-              postgres:
-                image: postgres:16
-                environment:
-                  POSTGRES_DB: product_db
-                  POSTGRES_USER: product
-                  POSTGRES_PASSWORD: product
-                ports:
-                  - "127.0.0.1:15436:5432"
-                healthcheck:
-                  test: ["CMD-SHELL", "pg_isready -U product -d product_db"]
-                  interval: 5s
-                  timeout: 3s
-                  retries: 20
-
-              api:
-                build:
-                  context: .
-                depends_on:
-                  postgres:
-                    condition: service_healthy
-                env_file:
-                  - .env
-                ports:
-                  - "127.0.0.1:18081:8080"
-            YAML
+            printf '%s\n' \
+              "services:" \
+              "  postgres:" \
+              "    image: postgres:16" \
+              "    environment:" \
+              "      POSTGRES_DB: product_db" \
+              "      POSTGRES_USER: product" \
+              "      POSTGRES_PASSWORD: product" \
+              "    ports:" \
+              "      - \"127.0.0.1:15436:5432\"" \
+              "    healthcheck:" \
+              "      test: [\"CMD-SHELL\", \"pg_isready -U product -d product_db\"]" \
+              "      interval: 5s" \
+              "      timeout: 3s" \
+              "      retries: 20" \
+              "" \
+              "  api:" \
+              "    build:" \
+              "      context: ." \
+              "    depends_on:" \
+              "      postgres:" \
+              "        condition: service_healthy" \
+              "    env_file:" \
+              "      - .env" \
+              "    ports:" \
+              "      - \"127.0.0.1:18081:8080\"" > docker-compose.runtime.yml
           fi
 
           docker compose -p starostina_leanedu -f docker-compose.runtime.yml up -d --build

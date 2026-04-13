@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -149,7 +150,7 @@ public class SeedService {
 
     private <T> List<T> readJsonList(String path, TypeReference<List<T>> typeRef) {
         try {
-            return objectMapper.readValue(Path.of(path).toFile(), typeRef);
+            return objectMapper.readValue(new ClassPathResource(path).getInputStream(), typeRef);
         } catch (IOException e) {
             throw new IllegalStateException("Ошибка чтения seed-файла " + path, e);
         }

@@ -3,6 +3,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconBook2, IconChartBar, IconHome2, IconLogout, IconSparkles, IconUsers } from '@tabler/icons-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { roleLabel } from '../utils/labels';
 
 const LINKS = {
   ADMIN: [
@@ -36,7 +37,7 @@ export default function MainLayout() {
       navbar={{ width: 280, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       styles={{
         main: {
-          background: 'linear-gradient(140deg, #f4f9f8 0%, #fff5e8 55%, #eaf4ff 100%)',
+          background: 'radial-gradient(1200px 600px at 10% 10%, #122a33 0%, transparent 45%), radial-gradient(900px 500px at 90% 0%, #2a1f14 0%, transparent 40%), #0b1014',
           minHeight: '100vh',
         },
       }}
@@ -49,7 +50,7 @@ export default function MainLayout() {
           </Group>
           <Group>
             <Text size="sm">{user?.fullName}</Text>
-            <Text size="xs" c="dimmed">{user?.role}</Text>
+            <Text size="xs" c="dimmed">{roleLabel(user?.role)}</Text>
           </Group>
         </Group>
       </AppShell.Header>

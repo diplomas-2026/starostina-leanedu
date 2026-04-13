@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
+import { publishStatusLabel } from '../utils/labels';
 
 export default function TestsPage() {
   const { user } = useAuth();
@@ -55,7 +56,7 @@ export default function TestsPage() {
             {user?.role === 'STUDENT' ? (
               <Button onClick={() => startAttempt(test.id)}>Начать</Button>
             ) : (
-              <Text size="sm">{test.published ? 'Опубликован' : 'Черновик'}</Text>
+              <Text size="sm">{publishStatusLabel(test.published)}</Text>
             )}
           </Group>
         </Card>

@@ -1,5 +1,6 @@
 import { Card, Grid, Group, Stack, Text, Title } from '@mantine/core';
 import { useAuth } from '../context/AuthContext';
+import { roleLabel } from '../utils/labels';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -11,7 +12,7 @@ export default function DashboardPage() {
       <Grid>
         <Grid.Col span={{ base: 12, md: 4 }}>
           <Card withBorder radius="md" shadow="sm">
-            <Group justify="space-between"><Text fw={600}>Роль</Text><Text>{user?.role}</Text></Group>
+            <Group justify="space-between"><Text fw={600}>Роль</Text><Text>{roleLabel(user?.role)}</Text></Group>
           </Card>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>

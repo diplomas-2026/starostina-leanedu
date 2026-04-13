@@ -27,7 +27,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'radial-gradient(circle at 10% 10%, #d9fff4, transparent 30%), radial-gradient(circle at 85% 20%, #ffe7c2, transparent 35%), #f8fbff' }}>
+    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'radial-gradient(circle at 12% 12%, #12313a, transparent 34%), radial-gradient(circle at 86% 22%, #3a2414, transparent 38%), #0a0f13' }}>
       <Card withBorder shadow="lg" radius="lg" p="xl" w={420}>
         <Title order={2} mb="md">Платформа LeanEdu</Title>
         <form onSubmit={handleSubmit}>

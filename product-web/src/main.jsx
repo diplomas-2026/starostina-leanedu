@@ -14,7 +14,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         fontFamily: 'Manrope, system-ui, sans-serif',
         primaryColor: 'teal',
         defaultRadius: 'md',
+        colors: {
+          midnight: ['#eef7ff', '#cfe8ff', '#9ecfff', '#6eb6ff', '#469fff', '#2e91fa', '#1f7dde', '#1569bb', '#0d5598', '#063f74'],
+        },
       }}
+      defaultColorScheme="dark"
+      forceColorScheme="dark"
     >
       <BrowserRouter>
         <AuthProvider>

@@ -2,6 +2,7 @@ import { Alert, Card, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { testApi } from '../api/services';
 import { extractError } from '../utils/errors';
+import { attemptStatusLabel } from '../utils/labels';
 
 export default function MyResultsPage() {
   const [items, setItems] = useState([]);
@@ -33,7 +34,7 @@ export default function MyResultsPage() {
         <Card key={it.id} withBorder>
           <Text fw={600}>{it.testTitle}</Text>
           <Text>Баллы: {it.score} / {it.maxScore}</Text>
-          <Text size="sm" c="dimmed">Статус: {it.status}</Text>
+          <Text size="sm" c="dimmed">Статус: {attemptStatusLabel(it.status)}</Text>
         </Card>
       ))}
     </Stack>

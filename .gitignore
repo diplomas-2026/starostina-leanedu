@@ -8,3 +8,4 @@
 product-api/data/
 product-web/test-results/
 product-web/playwright-report/
+.secrets/

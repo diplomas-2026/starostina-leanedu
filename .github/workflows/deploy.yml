@@ -1,0 +1,119 @@
+name: Deploy To VPS
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Add VPS To Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync Repository To VPS
+        run: |
+          rsync -az --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.secrets' \
+            --exclude 'product-web/node_modules' \
+            --exclude 'product-web/dist' \
+            --exclude 'product-api/target' \
+            --exclude 'product-api/.env' \
+            --exclude 'product-api/docker-compose.runtime.yml' \
+            ./ "${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}:${{ vars.DEPLOY_DIR }}/"
+
+      - name: Deploy API And Web
+        run: |
+          ssh "${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          DEPLOY_DIR="${{ vars.DEPLOY_DIR }}"
+          FQDN="${{ vars.FQDN }}"
+
+          cd "$DEPLOY_DIR/product-api"
+
+          if [ ! -f .env ]; then
+            JWT_SECRET=$(openssl rand -base64 48 | tr -d "\n")
+            cat > .env <<ENV
+DB_URL=jdbc:postgresql://postgres:5432/product_db
+DB_USER=product
+DB_PASSWORD=product
+APP_JWT_SECRET=${JWT_SECRET}
+GIGACHAT_API_KEY=demo-key
+GIGACHAT_BASE_URL=https://gigachat.devices.sberbank.ru/api/v1
+GIGACHAT_MODEL=GigaChat
+ENV
+          fi
+
+          if [ ! -f docker-compose.runtime.yml ]; then
+            cat > docker-compose.runtime.yml <<YAML
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: product_db
+      POSTGRES_USER: product
+      POSTGRES_PASSWORD: product
+    ports:
+      - "127.0.0.1:15436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U product -d product_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:18081:8080"
+YAML
+          fi
+
+          docker compose -p starostina_leanedu -f docker-compose.runtime.yml up -d --build
+
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:18081/actuator/health >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+
+          cd "$DEPLOY_DIR/product-web"
+          docker run --rm -v "$PWD":/app -w /app \
+            -e VITE_API_URL="https://${FQDN}" \
+            node:22 bash -lc "npm install && npm run build"
+
+          mkdir -p "/var/www/projects/${FQDN}"
+          rsync -av --delete dist/ "/var/www/projects/${FQDN}/"
+
+          nginx -t
+          systemctl reload nginx
+
+          curl -fsS https://${FQDN}/ >/dev/null
+          curl -fsS https://${FQDN}/v3/api-docs >/dev/null
+          REMOTE

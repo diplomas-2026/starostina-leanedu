@@ -1,10 +1,11 @@
-import { Alert, Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import { Alert, Badge, Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { aiApi, lectureApi } from '../api/services';
 import AiLimitsCard from '../components/AiLimitsCard';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
+import { publishStatusLabel } from '../utils/labels';
 
 export default function LectureDetailsPage() {
   const { id } = useParams();
@@ -13,6 +14,7 @@ export default function LectureDetailsPage() {
   const [limits, setLimits] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -50,6 +52,21 @@ export default function LectureDetailsPage() {
     }
   };
 
+  const handlePublish = async () => {
+    setPublishing(true);
+    setError('');
+    setSuccess('');
+    try {
+      await lectureApi.publish(id);
+      setSuccess('Лекция опубликована');
+      await loadData();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось опубликовать лекцию'));
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   if (loading) return <Loader color="teal" />;
 
   return (
@@ -58,11 +75,21 @@ export default function LectureDetailsPage() {
         <div>
           <Title order={2}>{lecture?.title}</Title>
           <Text c="dimmed">{lecture?.summary}</Text>
+          <Badge mt={8} variant="light">
+            {publishStatusLabel(lecture?.published)}
+          </Badge>
         </div>
         {user?.role === 'TEACHER' && (
-          <Button onClick={handleGenerate} loading={generating} disabled={limits?.remaining === 0}>
-            Сгенерировать тест
-          </Button>
+          <Group>
+            {!lecture?.published && (
+              <Button variant="outline" onClick={handlePublish} loading={publishing}>
+                Опубликовать
+              </Button>
+            )}
+            <Button onClick={handleGenerate} loading={generating} disabled={limits?.remaining === 0}>
+              Сгенерировать тест
+            </Button>
+          </Group>
         )}
       </Group>
 
@@ -71,7 +98,10 @@ export default function LectureDetailsPage() {
       {error && <Alert color="red">{error}</Alert>}
       {success && <Alert color="green">{success}</Alert>}
 
-      <Text style={{ whiteSpace: 'pre-wrap' }}>{lecture?.content}</Text>
+      <div
+        className="lecture-view-content"
+        dangerouslySetInnerHTML={{ __html: lecture?.content || '' }}
+      />
     </Stack>
   );
 }

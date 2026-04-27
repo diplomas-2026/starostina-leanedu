@@ -8,3 +8,33 @@ body {
   margin: 0;
   font-family: 'Manrope', system-ui, sans-serif;
 }
+
+.lecture-editor-content h1,
+.lecture-editor-content h2,
+.lecture-editor-content h3,
+.lecture-view-content h1,
+.lecture-view-content h2,
+.lecture-view-content h3 {
+  margin: 14px 0 8px;
+}
+
+.lecture-editor-content p,
+.lecture-view-content p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.lecture-editor-content ul,
+.lecture-editor-content ol,
+.lecture-view-content ul,
+.lecture-view-content ol {
+  margin: 10px 0 10px 22px;
+  line-height: 1.6;
+}
+
+.lecture-view-content {
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}

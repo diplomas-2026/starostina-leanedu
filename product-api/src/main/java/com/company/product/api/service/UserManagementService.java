@@ -50,6 +50,23 @@ public class UserManagementService {
         return users.stream().map(this::toItem).toList();
     }
 
+    public List<UserManagementDtos.UserItem> listStudents() {
+        return appUserRepository.findByRole(Role.STUDENT).stream()
+            .map(this::toItem)
+            .toList();
+    }
+
+    public List<UserManagementDtos.GroupItem> listGroups() {
+        return groupRepository.findAll().stream()
+            .map(group -> new UserManagementDtos.GroupItem(
+                group.getId(),
+                group.getCode(),
+                group.getName(),
+                group.getCourseYear()
+            ))
+            .toList();
+    }
+
     private UserManagementDtos.UserItem createUser(String email, String fullName, String password, Role role) {
         if (appUserRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "Пользователь с таким email уже существует");

@@ -25,6 +25,8 @@ export const testApi = {
 
 export const teacherApi = {
   createStudent: (payload) => api.post('/api/teacher/students', payload),
+  students: () => api.get('/api/teacher/students'),
+  groups: () => api.get('/api/teacher/groups'),
   addStudentToGroup: (groupId, studentId) => api.post(`/api/teacher/groups/${groupId}/students/${studentId}`),
 };
 

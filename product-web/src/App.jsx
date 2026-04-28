@@ -8,6 +8,7 @@ import LectureDetailsPage from './pages/LectureDetailsPage';
 import TestsPage from './pages/TestsPage';
 import CreateTestPage from './pages/CreateTestPage';
 import TestDetailsPage from './pages/TestDetailsPage';
+import TestQuestionEditorPage from './pages/TestQuestionEditorPage';
 import MyResultsPage from './pages/MyResultsPage';
 import AdminTeachersPage from './pages/AdminTeachersPage';
 import TeacherGroupsPage from './pages/TeacherGroupsPage';
@@ -37,6 +38,7 @@ export default function App() {
           <Route element={<ProtectedRoute roles={['TEACHER']} />}>
             <Route path="/tests/new" element={<CreateTestPage />} />
             <Route path="/tests/:id" element={<TestDetailsPage />} />
+            <Route path="/tests/:id/questions" element={<TestQuestionEditorPage />} />
             <Route path="/teacher/disciplines" element={<TeacherDisciplinesPage />} />
             <Route path="/teacher/disciplines/:subjectId" element={<TeacherDisciplineDetailsPage />} />
             <Route path="/gradebook" element={<GradebookPage />} />

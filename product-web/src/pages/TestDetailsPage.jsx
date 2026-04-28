@@ -41,7 +41,7 @@ export default function TestDetailsPage() {
         <Stack gap={4}>
           <Title order={2}>{test.title}</Title>
           <Text c="dimmed">{test.description}</Text>
-          <Text size="sm" c="dimmed">Предмет: {test.subjectName || 'Не указан'}</Text>
+          <Text size="sm" c="dimmed">Дисциплина: {test.subjectName || 'Не указана'}</Text>
           <Text size="sm" c="dimmed">Время: {test.timeLimitMin} мин · Попыток: {test.attemptsLimit}</Text>
           <Text size="sm" c="dimmed">
             Пороги: 3 от {test.minScore3}, 4 от {test.minScore4}, 5 от {test.minScore5}

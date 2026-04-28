@@ -57,7 +57,7 @@ export default function GradebookPage() {
         setSubjects(options);
         setSelectedSubjectId(options[0]?.value || '');
       } catch (err) {
-        setError(extractError(err, 'Не удалось загрузить список предметов'));
+        setError(extractError(err, 'Не удалось загрузить список дисциплин'));
       } finally {
         setLoadingSubjects(false);
       }
@@ -78,7 +78,7 @@ export default function GradebookPage() {
         const { data } = await gradebookApi.matrix(selectedGroupId, selectedSubjectId);
         setMatrix(data);
       } catch (err) {
-        setError(extractError(err, 'Не удалось загрузить журнал группы и предмета'));
+        setError(extractError(err, 'Не удалось загрузить журнал группы и дисциплины'));
       } finally {
         setLoadingMatrix(false);
       }
@@ -121,12 +121,12 @@ export default function GradebookPage() {
             <Loader color="teal" />
           ) : (
             <Select
-              label="Предмет"
-              placeholder="Выберите предмет"
+              label="Дисциплина"
+              placeholder="Выберите дисциплину"
               value={selectedSubjectId}
               data={subjects}
               onChange={(value) => setSelectedSubjectId(value || '')}
-              nothingFoundMessage="Предметы не найдены"
+              nothingFoundMessage="Дисциплины не найдены"
               searchable
               disabled={!selectedGroupId}
             />
@@ -139,7 +139,7 @@ export default function GradebookPage() {
         {!loadingMatrix && matrix && (
           <Stack gap="md">
             <Text c="dimmed">
-              Группа: {matrix.groupCode} — {matrix.groupName} · Предмет: {matrix.subjectCode} — {matrix.subjectName}
+              Группа: {matrix.groupCode} — {matrix.groupName} · Дисциплина: {matrix.subjectCode} — {matrix.subjectName}
             </Text>
 
             {matrix.columns.length === 0 ? (

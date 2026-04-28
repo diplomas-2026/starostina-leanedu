@@ -57,7 +57,7 @@ export default function TestsPage() {
           setCreateForm((prev) => ({ ...prev, subjectId: prev.subjectId || options[0].value }));
         }
       } catch (err) {
-        setError(extractError(err, 'Не удалось загрузить список предметов'));
+        setError(extractError(err, 'Не удалось загрузить список дисциплин'));
       }
     };
     loadSubjects();
@@ -79,7 +79,7 @@ export default function TestsPage() {
     setError('');
     setMessage('');
     if (!createForm.subjectId) {
-      setError('Выберите предмет для теста');
+      setError('Выберите дисциплину для теста');
       return;
     }
     try {
@@ -129,12 +129,12 @@ export default function TestsPage() {
                 required
               />
               <Select
-                label="Предмет"
-                placeholder="Выберите предмет"
+                label="Дисциплина"
+                placeholder="Выберите дисциплину"
                 data={subjectOptions}
                 value={createForm.subjectId}
                 onChange={(value) => setCreateForm({ ...createForm, subjectId: value || '' })}
-                nothingFoundMessage="Предметы не найдены"
+                nothingFoundMessage="Дисциплины не найдены"
                 searchable
                 required
               />
@@ -193,7 +193,7 @@ export default function TestsPage() {
               <Text size="sm" c="dimmed">{test.description}</Text>
               {user?.role !== 'STUDENT' && (
                 <Text size="xs" c="dimmed">
-                  Предмет: {test.subjectName || 'Не указан'} ·{' '}
+                  Дисциплина: {test.subjectName || 'Не указана'} ·{' '}
                   Пороги: 3 от {test.minScore3}, 4 от {test.minScore4}, 5 от {test.minScore5}
                 </Text>
               )}

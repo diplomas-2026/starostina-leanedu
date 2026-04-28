@@ -1,5 +1,6 @@
 import { Alert, Card, Loader, ScrollArea, Select, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { studentApi } from '../api/services';
 import ListControls from '../components/ListControls';
 import { GradeBadge, GradebookStatusBadge } from '../components/SemanticBadges';
@@ -132,7 +133,12 @@ export default function StudentGradebookPage() {
             {visibleData.columns.length === 0 ? (
               <Alert color="blue">Для вашей группы пока нет назначенных тестов.</Alert>
             ) : (
-              <ScrollArea>
+              <ScrollArea
+                style={{
+                  border: '1px solid rgba(34, 197, 94, 0.55)',
+                  borderRadius: 14,
+                }}
+              >
                 <Table striped highlightOnHover withTableBorder withColumnBorders>
                   <Table.Thead>
                     <Table.Tr>
@@ -140,7 +146,9 @@ export default function StudentGradebookPage() {
                       {visibleData.columns.map((column) => (
                         <Table.Th key={column.assignmentId} miw={220}>
                           <Stack gap={2}>
-                            <Text fw={600}>{column.testTitle}</Text>
+                            <Text component={Link} to={`/tests/${column.testId}/take`} fw={600} style={{ textDecoration: 'none' }}>
+                              {column.testTitle}
+                            </Text>
                             <Text size="xs" c="dimmed">Дедлайн: {formatDueAt(column.dueAt)}</Text>
                           </Stack>
                         </Table.Th>
@@ -151,7 +159,9 @@ export default function StudentGradebookPage() {
                     {visibleData.rows.map((row) => (
                       <Table.Tr key={row.subjectId}>
                         <Table.Td>
-                          <Text>{row.subjectCode} — {row.subjectName}</Text>
+                          <Text component={Link} to={`/student/disciplines/${row.subjectId}`} style={{ textDecoration: 'none' }}>
+                            {row.subjectCode} — {row.subjectName}
+                          </Text>
                         </Table.Td>
                         {row.cells.map((cell, index) => (
                           <Table.Td key={`${row.subjectId}-${visibleData.columns[index].assignmentId}`}>

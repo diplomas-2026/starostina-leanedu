@@ -25,10 +25,10 @@ const LINKS = {
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
     { to: '/profile', label: 'Профиль', icon: IconUser },
     { to: '/student/disciplines', label: 'Дисциплины', icon: IconBook2 },
-    { to: '/student/gradebook', label: 'Журнал', icon: IconChartBar },
     { to: '/lectures', label: 'Лекции', icon: IconBook2 },
     { to: '/tests', label: 'Тесты', icon: IconSparkles },
     { to: '/my-results', label: 'Мои результаты', icon: IconChartBar },
+    { to: '/student/gradebook', label: 'Журнал', icon: IconChartBar },
   ],
 };
 

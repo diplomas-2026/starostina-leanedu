@@ -1,4 +1,4 @@
-import { Alert, Card, Grid, Loader, Stack, Table, Text, Title } from '@mantine/core';
+import { Alert, Card, Grid, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { studentApi } from '../api/services';

@@ -32,11 +32,11 @@ public class TestService {
     public TestDtos.TestItem createTest(TestDtos.CreateTestRequest request, AppUser teacher) {
         validateThresholds(request.minScore3(), request.minScore4(), request.minScore5());
         Subject subject = subjectRepository.findById(request.subjectId())
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Предмет не найден"));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Дисциплина не найдена"));
         boolean hasSubject = teachingAssignmentRepository.findByTeacher(teacher).stream()
             .anyMatch(ta -> ta.getSubject().getId().equals(subject.getId()));
         if (!hasSubject) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на выбранный предмет");
+            throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на выбранную дисциплину");
         }
 
         LearningTest test = new LearningTest();
@@ -54,16 +54,56 @@ public class TestService {
             test.setLecture(lectureRepository.findById(request.lectureId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена")));
         }
-        return toTestItem(learningTestRepository.save(test));
+        test = learningTestRepository.save(test);
+
+        for (Long groupId : request.groupIds()) {
+            GroupEntity group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+            if (!teachingAssignmentRepository.existsByTeacherAndGroupAndSubject(teacher, group, subject)) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на эту дисциплину в выбранной группе");
+            }
+            TestAssignment assignment = new TestAssignment();
+            assignment.setTest(test);
+            assignment.setGroup(group);
+            assignment.setDueAt(request.dueAt());
+            assignment.setActive(true);
+            testAssignmentRepository.save(assignment);
+        }
+
+        return toTestItem(test);
     }
 
     public List<TestDtos.TestItem> listTests(AppUser user) {
-        List<LearningTest> tests = user.getRole() == Role.STUDENT ? learningTestRepository.findByPublishedTrue() : learningTestRepository.findAll();
+        List<LearningTest> tests;
+        if (user.getRole() == Role.STUDENT) {
+            tests = learningTestRepository.findByPublishedTrue();
+        } else if (user.getRole() == Role.TEACHER) {
+            List<Long> teacherSubjectIds = teachingAssignmentRepository.findByTeacher(user).stream()
+                .map(ta -> ta.getSubject().getId())
+                .distinct()
+                .toList();
+            tests = learningTestRepository.findAll().stream()
+                .filter(test -> test.getCreatedBy() != null && test.getCreatedBy().getId().equals(user.getId())
+                    || (test.getSubject() != null && teacherSubjectIds.contains(test.getSubject().getId())))
+                .toList();
+        } else {
+            tests = learningTestRepository.findAll();
+        }
         return tests.stream().map(this::toTestItem).toList();
     }
 
-    public TestDtos.TestDetailsItem getTestDetails(Long testId) {
+    public TestDtos.TestDetailsItem getTestDetails(Long testId, AppUser user) {
         LearningTest test = getTestOrThrow(testId);
+        if (user.getRole() == Role.TEACHER) {
+            boolean allowed = test.getCreatedBy() != null && test.getCreatedBy().getId().equals(user.getId());
+            if (!allowed && test.getSubject() != null) {
+                allowed = teachingAssignmentRepository.findByTeacher(user).stream()
+                    .anyMatch(ta -> ta.getSubject().getId().equals(test.getSubject().getId()));
+            }
+            if (!allowed) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав для просмотра теста");
+            }
+        }
         List<Question> questions = questionRepository.findByTestOrderBySortOrderAsc(test);
 
         List<TestDtos.TestQuestionItem> questionItems = questions.stream()
@@ -90,6 +130,15 @@ public class TestService {
             test.getMinScore3(),
             test.getMinScore4(),
             test.getMinScore5(),
+            testAssignmentRepository.findByTestOrderByDueAtAsc(test).stream()
+                .map(a -> new TestDtos.TestAssignmentItem(
+                    a.getId(),
+                    a.getGroup().getId(),
+                    a.getGroup().getCode(),
+                    a.getGroup().getName(),
+                    a.getDueAt()
+                ))
+                .toList(),
             questionItems
         );
     }
@@ -123,10 +172,10 @@ public class TestService {
         GroupEntity group = groupRepository.findById(request.groupId())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
         if (test.getSubject() == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "У теста не указан предмет");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "У теста не указана дисциплина");
         }
         if (!teachingAssignmentRepository.existsByTeacherAndGroupAndSubject(teacher, group, test.getSubject())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на этот предмет в выбранной группе");
+            throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на эту дисциплину в выбранной группе");
         }
 
         TestAssignment assignment = new TestAssignment();
@@ -286,7 +335,7 @@ public class TestService {
         GroupEntity group = groupRepository.findById(groupId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
         Subject subject = subjectRepository.findById(subjectId)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Предмет не найден"));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Дисциплина не найдена"));
 
         if (user.getRole() == Role.TEACHER && !teachingAssignmentRepository.existsByTeacherAndGroupAndSubject(user, group, subject)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "У преподавателя нет назначения на эту группу и предмет");

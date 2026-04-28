@@ -26,4 +26,29 @@ public class AdminController {
     public List<UserManagementDtos.UserItem> listUsers(@RequestParam(required = false) Role role) {
         return userManagementService.listUsers(role);
     }
+
+    @GetMapping("/groups")
+    public List<UserManagementDtos.GroupItem> listGroups() {
+        return userManagementService.listGroups();
+    }
+
+    @PostMapping("/subjects")
+    public UserManagementDtos.SubjectItem createSubject(@Valid @RequestBody UserManagementDtos.CreateSubjectRequest request) {
+        return userManagementService.createSubject(request);
+    }
+
+    @GetMapping("/subjects")
+    public List<UserManagementDtos.SubjectItem> listSubjects() {
+        return userManagementService.listSubjects();
+    }
+
+    @PostMapping("/teaching-assignments")
+    public UserManagementDtos.TeachingAssignmentItem createTeachingAssignment(@Valid @RequestBody UserManagementDtos.CreateTeachingAssignmentRequest request) {
+        return userManagementService.createTeachingAssignment(request);
+    }
+
+    @GetMapping("/teaching-assignments")
+    public List<UserManagementDtos.TeachingAssignmentItem> listTeachingAssignments() {
+        return userManagementService.listTeachingAssignments();
+    }
 }

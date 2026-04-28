@@ -29,12 +29,20 @@ public class TeacherController {
     }
 
     @GetMapping("/groups")
-    public List<UserManagementDtos.GroupItem> listGroups() {
-        return userManagementService.listGroups();
+    public List<UserManagementDtos.GroupItem> listGroups(@RequestParam(required = false) Long subjectId) {
+        if (subjectId == null) {
+            return userManagementService.listGroups();
+        }
+        return userManagementService.listGroupsForTeacherBySubject(currentUserService.requireCurrentUser(), subjectId);
     }
 
     @GetMapping("/subjects")
     public List<UserManagementDtos.SubjectItem> listSubjects(@RequestParam(required = false) Long groupId) {
+        return userManagementService.listSubjectsForTeacher(currentUserService.requireCurrentUser(), groupId);
+    }
+
+    @GetMapping("/disciplines")
+    public List<UserManagementDtos.SubjectItem> listDisciplines(@RequestParam(required = false) Long groupId) {
         return userManagementService.listSubjectsForTeacher(currentUserService.requireCurrentUser(), groupId);
     }
 

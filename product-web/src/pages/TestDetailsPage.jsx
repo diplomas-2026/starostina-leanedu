@@ -52,6 +52,28 @@ export default function TestDetailsPage() {
 
       {error && <Alert color="red">{error}</Alert>}
 
+      <Card withBorder>
+        <Title order={4} mb="sm">Назначение теста</Title>
+        {test.assignments?.length ? (
+          <List spacing={6}>
+            {test.assignments.map((assignment) => (
+              <List.Item key={assignment.assignmentId}>
+                {assignment.groupCode} — {assignment.groupName}, дедлайн:{' '}
+                {new Date(assignment.dueAt).toLocaleString('ru-RU', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </List.Item>
+            ))}
+          </List>
+        ) : (
+          <Alert color="yellow">Тест пока не назначен ни одной группе.</Alert>
+        )}
+      </Card>
+
       <Title order={4}>Вопросы</Title>
       {test.questions.length === 0 && (
         <Alert color="yellow">В тесте пока нет вопросов.</Alert>

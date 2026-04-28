@@ -26,7 +26,7 @@ public class TestController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
     public TestDtos.TestDetailsItem details(@PathVariable Long id) {
-        return testService.getTestDetails(id);
+        return testService.getTestDetails(id, currentUserService.requireCurrentUser());
     }
 
     @PostMapping

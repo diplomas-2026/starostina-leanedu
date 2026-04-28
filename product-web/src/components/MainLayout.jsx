@@ -12,6 +12,7 @@ const LINKS = {
   ],
   TEACHER: [
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
+    { to: '/teacher/disciplines', label: 'Дисциплины', icon: IconBook2 },
     { to: '/lectures', label: 'Лекции', icon: IconBook2 },
     { to: '/tests', label: 'Тесты', icon: IconSparkles },
     { to: '/teacher/students', label: 'Студенты', icon: IconUsers },

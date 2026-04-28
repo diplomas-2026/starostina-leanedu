@@ -14,6 +14,8 @@ public class TestDtos {
         @NotBlank String description,
         Long lectureId,
         @NotNull Long subjectId,
+        @NotEmpty List<Long> groupIds,
+        @NotNull OffsetDateTime dueAt,
         @NotNull @Min(1) Integer timeLimitMin,
         @NotNull @Min(1) Integer attemptsLimit,
         @NotNull @Min(0) Integer minScore3,
@@ -55,6 +57,7 @@ public class TestDtos {
     ) {}
     public record TestOptionItem(Long id, String text, boolean correct) {}
     public record TestQuestionItem(Long id, String text, Integer points, Integer sortOrder, List<TestOptionItem> options) {}
+    public record TestAssignmentItem(Long assignmentId, Long groupId, String groupCode, String groupName, OffsetDateTime dueAt) {}
     public record TestDetailsItem(
         Long id,
         String title,
@@ -67,6 +70,7 @@ public class TestDtos {
         Integer minScore3,
         Integer minScore4,
         Integer minScore5,
+        List<TestAssignmentItem> assignments,
         List<TestQuestionItem> questions
     ) {}
 }

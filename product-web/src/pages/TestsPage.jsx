@@ -1,24 +1,13 @@
-import { Alert, Button, Card, Group, Loader, NumberInput, Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { teacherApi, testApi } from '../api/services';
+import { testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
 import { publishStatusLabel } from '../utils/labels';
 
 export default function TestsPage() {
   const { user } = useAuth();
-  const [createForm, setCreateForm] = useState({
-    title: '',
-    description: '',
-    subjectId: '',
-    timeLimitMin: 20,
-    attemptsLimit: 3,
-    minScore3: 5,
-    minScore4: 7,
-    minScore5: 9,
-  });
-  const [subjectOptions, setSubjectOptions] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,28 +30,6 @@ export default function TestsPage() {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (user?.role !== 'TEACHER') {
-      return;
-    }
-    const loadSubjects = async () => {
-      try {
-        const { data } = await teacherApi.subjects();
-        const options = data.map((subject) => ({
-          value: String(subject.id),
-          label: `${subject.code} — ${subject.name}`,
-        }));
-        setSubjectOptions(options);
-        if (options.length > 0) {
-          setCreateForm((prev) => ({ ...prev, subjectId: prev.subjectId || options[0].value }));
-        }
-      } catch (err) {
-        setError(extractError(err, 'Не удалось загрузить список дисциплин'));
-      }
-    };
-    loadSubjects();
-  }, [user?.role]);
-
   const startAttempt = async (testId) => {
     setError('');
     setMessage('');
@@ -74,130 +41,35 @@ export default function TestsPage() {
     }
   };
 
-  const createTest = async (e) => {
-    e.preventDefault();
-    setError('');
-    setMessage('');
-    if (!createForm.subjectId) {
-      setError('Выберите дисциплину для теста');
-      return;
-    }
-    try {
-      await testApi.create({
-        ...createForm,
-        subjectId: Number(createForm.subjectId),
-      });
-      setMessage('Тест создан');
-      setCreateForm({
-        title: '',
-        description: '',
-        subjectId: subjectOptions[0]?.value || '',
-        timeLimitMin: 20,
-        attemptsLimit: 3,
-        minScore3: 5,
-        minScore4: 7,
-        minScore5: 9,
-      });
-      await loadData();
-    } catch (err) {
-      setError(extractError(err, 'Не удалось создать тест'));
-    }
-  };
-
   return (
     <Stack>
-      <Title order={2}>Тесты</Title>
+      <Group justify="space-between">
+        <Title order={2}>Тесты</Title>
+        {user?.role === 'TEACHER' && (
+          <Button component={Link} to="/tests/new">
+            Создать тест
+          </Button>
+        )}
+      </Group>
+
       {loading && <Loader color="teal" />}
       {error && <Alert color="red">{error}</Alert>}
       {message && <Alert color="green">{message}</Alert>}
 
-      {user?.role === 'TEACHER' && (
-        <Card withBorder>
-          <Title order={4} mb="md">Создание теста</Title>
-          <form onSubmit={createTest}>
-            <Stack>
-              <TextInput
-                label="Название"
-                value={createForm.title}
-                onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-                required
-              />
-              <TextInput
-                label="Описание"
-                value={createForm.description}
-                onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                required
-              />
-              <Select
-                label="Дисциплина"
-                placeholder="Выберите дисциплину"
-                data={subjectOptions}
-                value={createForm.subjectId}
-                onChange={(value) => setCreateForm({ ...createForm, subjectId: value || '' })}
-                nothingFoundMessage="Дисциплины не найдены"
-                searchable
-                required
-              />
-              <Group grow>
-                <NumberInput
-                  label="Лимит времени (мин)"
-                  min={1}
-                  value={createForm.timeLimitMin}
-                  onChange={(value) => setCreateForm({ ...createForm, timeLimitMin: Number(value) || 1 })}
-                  required
-                />
-                <NumberInput
-                  label="Макс. попыток"
-                  min={1}
-                  value={createForm.attemptsLimit}
-                  onChange={(value) => setCreateForm({ ...createForm, attemptsLimit: Number(value) || 1 })}
-                  required
-                />
-              </Group>
-
-              <Title order={5}>Пороги оценок (в баллах)</Title>
-              <Group grow>
-                <NumberInput
-                  label="На 3"
-                  min={0}
-                  value={createForm.minScore3}
-                  onChange={(value) => setCreateForm({ ...createForm, minScore3: Number(value) || 0 })}
-                  required
-                />
-                <NumberInput
-                  label="На 4"
-                  min={0}
-                  value={createForm.minScore4}
-                  onChange={(value) => setCreateForm({ ...createForm, minScore4: Number(value) || 0 })}
-                  required
-                />
-                <NumberInput
-                  label="На 5"
-                  min={0}
-                  value={createForm.minScore5}
-                  onChange={(value) => setCreateForm({ ...createForm, minScore5: Number(value) || 0 })}
-                  required
-                />
-              </Group>
-              <Button type="submit">Создать тест</Button>
-            </Stack>
-          </form>
-        </Card>
-      )}
-
       {items.map((test) => (
         <Card key={test.id} withBorder radius="md" shadow="sm">
-          <Group justify="space-between">
+          <Group justify="space-between" align="start">
             <Stack gap={4}>
               <Text fw={700}>{test.title}</Text>
               <Text size="sm" c="dimmed">{test.description}</Text>
               {user?.role !== 'STUDENT' && (
                 <Text size="xs" c="dimmed">
-                  Дисциплина: {test.subjectName || 'Не указана'} ·{' '}
+                  Дисциплина: {test.subjectName || 'Не указана'} ·
                   Пороги: 3 от {test.minScore3}, 4 от {test.minScore4}, 5 от {test.minScore5}
                 </Text>
               )}
             </Stack>
+
             {user?.role === 'STUDENT' ? (
               <Button onClick={() => startAttempt(test.id)}>Начать</Button>
             ) : (

@@ -1,6 +1,7 @@
 package com.company.product.api.repository;
 
 import com.company.product.api.entity.GroupEntity;
+import com.company.product.api.entity.LearningTest;
 import com.company.product.api.entity.Subject;
 import com.company.product.api.entity.TestAssignment;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,4 +12,5 @@ public interface TestAssignmentRepository extends JpaRepository<TestAssignment, 
     List<TestAssignment> findByGroupAndActiveTrue(GroupEntity group);
     List<TestAssignment> findByGroupAndActiveTrueOrderByDueAtAsc(GroupEntity group);
     List<TestAssignment> findByGroupAndTestSubjectAndActiveTrueOrderByDueAtAsc(GroupEntity group, Subject subject);
+    List<TestAssignment> findByTestOrderByDueAtAsc(LearningTest test);
 }

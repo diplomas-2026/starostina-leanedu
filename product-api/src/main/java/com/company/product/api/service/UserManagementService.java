@@ -55,6 +55,14 @@ public class UserManagementService {
         AppUser student = appUserRepository.findById(studentId)
             .filter(u -> u.getRole() == Role.STUDENT)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Студент не найден"));
+
+        List<GroupStudent> memberships = groupStudentRepository.findByStudent(student);
+        boolean alreadyInThisGroup = memberships.stream()
+            .anyMatch(membership -> membership.getGroup().getId().equals(group.getId()));
+        if (!alreadyInThisGroup && !memberships.isEmpty()) {
+            throw new ApiException(HttpStatus.CONFLICT, "Студент уже состоит в другой группе");
+        }
+
         if (!groupStudentRepository.existsByGroupAndStudent(group, student)) {
             GroupStudent gs = new GroupStudent();
             gs.setGroup(group);

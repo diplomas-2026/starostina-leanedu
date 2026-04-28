@@ -13,6 +13,7 @@ export default function AdminTeachersPage() {
   const [assignments, setAssignments] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [groupStudents, setGroupStudents] = useState([]);
+  const [occupiedStudentIds, setOccupiedStudentIds] = useState([]);
 
   const [teacherForm, setTeacherForm] = useState({ email: '', fullName: '', password: '' });
   const [studentForm, setStudentForm] = useState({ email: '', fullName: '', password: '' });
@@ -29,10 +30,12 @@ export default function AdminTeachersPage() {
     () => teachers.map((t) => ({ value: String(t.id), label: `${t.fullName} (${t.email})` })),
     [teachers],
   );
-  const studentOptions = useMemo(
-    () => students.map((s) => ({ value: String(s.id), label: `${s.fullName} (${s.email})` })),
-    [students],
-  );
+  const studentOptions = useMemo(() => {
+    const occupied = new Set(occupiedStudentIds);
+    return students
+      .filter((s) => !occupied.has(s.id))
+      .map((s) => ({ value: String(s.id), label: `${s.fullName} (${s.email})` }));
+  }, [students, occupiedStudentIds]);
   const groupOptions = useMemo(
     () => groups.map((g) => ({ value: String(g.id), label: `${g.code} — ${g.name}` })),
     [groups],
@@ -59,6 +62,15 @@ export default function AdminTeachersPage() {
       setSubjects(subjectsResp.data);
       setAssignments(assignmentsResp.data);
 
+      const perGroupStudents = await Promise.all(
+        groupsResp.data.map(async (group) => {
+          const { data } = await adminApi.groupStudents(group.id);
+          return data;
+        }),
+      );
+      const occupiedIds = [...new Set(perGroupStudents.flat().map((student) => student.id))];
+      setOccupiedStudentIds(occupiedIds);
+
       const firstGroupId = String(groupsResp.data[0]?.id || '');
       setAssignmentForm((prev) => ({
         teacherId: prev.teacherId || String(teachersResp.data[0]?.id || ''),
@@ -67,7 +79,7 @@ export default function AdminTeachersPage() {
       }));
       setStudentGroupForm((prev) => ({
         groupId: prev.groupId || firstGroupId,
-        studentId: prev.studentId || String(studentsResp.data[0]?.id || ''),
+        studentId: prev.studentId || String(studentsResp.data.find((s) => !occupiedIds.includes(s.id))?.id || ''),
       }));
       setSelectedGroupId((prev) => prev || firstGroupId);
     } catch (err) {
@@ -253,6 +265,9 @@ export default function AdminTeachersPage() {
                   <Select label="Группа" data={groupOptions} value={studentGroupForm.groupId} onChange={(v) => setStudentGroupForm({ ...studentGroupForm, groupId: v || '' })} searchable required />
                   <Select label="Студент" data={studentOptions} value={studentGroupForm.studentId} onChange={(v) => setStudentGroupForm({ ...studentGroupForm, studentId: v || '' })} searchable required />
                 </Group>
+                {studentOptions.length === 0 && (
+                  <Alert color="blue">Все студенты уже распределены по группам.</Alert>
+                )}
                 <Button type="submit" loading={saving}>Добавить в группу</Button>
               </Stack>
             </form>

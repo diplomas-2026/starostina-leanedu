@@ -61,19 +61,20 @@ jobs:
           fi
 
           API_PORT=18081
-          MAX_PORT=18181
-          while [ "$API_PORT" -le "$MAX_PORT" ]; do
-            if ! ss -ltn | awk '{print $4}' | grep -Eq "(^|:)${API_PORT}$"; then
-              break
-            fi
-            API_PORT=$((API_PORT + 1))
-          done
+          echo "Using fixed API port: ${API_PORT}"
 
-          if [ "$API_PORT" -gt "$MAX_PORT" ]; then
-            echo "No free API port found in range 18081-18181"
-            exit 1
+          PORT_HOLDER=$(docker ps -q --filter "publish=${API_PORT}" | head -n 1 || true)
+          if [ -n "${PORT_HOLDER}" ]; then
+            HOLDER_PROJECT=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "${PORT_HOLDER}" 2>/dev/null || true)
+            if [ "${HOLDER_PROJECT}" = "starostina_leanedu" ]; then
+              echo "Port ${API_PORT} is occupied by existing project container ${PORT_HOLDER}, removing it"
+              docker rm -f "${PORT_HOLDER}"
+            else
+              echo "Port ${API_PORT} is occupied by foreign container ${PORT_HOLDER} (project=${HOLDER_PROJECT:-unknown})."
+              echo "Refusing to change port automatically to avoid nginx mismatch."
+              exit 1
+            fi
           fi
-          echo "Selected API port: ${API_PORT}"
 
           printf '%s\n' \
             "services:" \
@@ -109,7 +110,10 @@ jobs:
             echo "Nginx config not found: ${NGINX_SITE}"
             exit 1
           fi
-          sed -E -i "s#127\\.0\\.0\\.1:[0-9]+#127.0.0.1:${API_PORT}#g" "$NGINX_SITE"
+          if ! grep -q "127.0.0.1:${API_PORT}" "$NGINX_SITE"; then
+            echo "Nginx config does not point to expected API port ${API_PORT}"
+            exit 1
+          fi
 
           api_ready=0
           for i in $(seq 1 60); do

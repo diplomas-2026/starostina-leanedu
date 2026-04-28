@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { aiApi, lectureApi } from '../api/services';
 import AiLimitsCard from '../components/AiLimitsCard';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +15,7 @@ export default function LectureDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [generatedTestId, setGeneratedTestId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -40,8 +41,10 @@ export default function LectureDetailsPage() {
     setGenerating(true);
     setError('');
     setSuccess('');
+    setGeneratedTestId(null);
     try {
       const { data } = await aiApi.generateFromLecture(id);
+      setGeneratedTestId(data);
       setSuccess(`Черновик теста создан. ID теста: ${data}`);
       const limitsResp = await aiApi.limits();
       setLimits(limitsResp.data);
@@ -94,9 +97,19 @@ export default function LectureDetailsPage() {
       </Group>
 
       <AiLimitsCard limits={limits} />
+      {user?.role === 'TEACHER' && (
+        <Alert color="blue">
+          Генерация через LLM: откройте нужную лекцию и нажмите <b>Сгенерировать тест</b>. После генерации появится кнопка перехода в тест.
+        </Alert>
+      )}
 
       {error && <Alert color="red">{error}</Alert>}
       {success && <Alert color="green">{success}</Alert>}
+      {generatedTestId && (
+        <Button component={Link} to={`/tests/${generatedTestId}`} variant="light">
+          Открыть сгенерированный тест
+        </Button>
+      )}
 
       <div
         className="lecture-view-content"

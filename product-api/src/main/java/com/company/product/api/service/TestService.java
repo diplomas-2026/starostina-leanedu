@@ -50,14 +50,15 @@ public class TestService {
         test.setMinScore4(request.minScore4());
         test.setMinScore5(request.minScore5());
         test.setCreatedBy(teacher);
-        if (request.lectureId() != null) {
-            Lecture lecture = lectureRepository.findById(request.lectureId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена"));
-            if (lecture.getCreatedBy() == null || !lecture.getCreatedBy().getId().equals(teacher.getId())) {
-                throw new ApiException(HttpStatus.FORBIDDEN, "Можно привязать только свою лекцию");
-            }
-            test.setLecture(lecture);
+        Lecture lecture = lectureRepository.findById(request.lectureId())
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена"));
+        if (lecture.getCreatedBy() == null || !lecture.getCreatedBy().getId().equals(teacher.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Можно привязать только свою лекцию");
         }
+        if (lecture.getSubject() == null || !lecture.getSubject().getId().equals(subject.getId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Лекция должна относиться к выбранной дисциплине");
+        }
+        test.setLecture(lecture);
         test = learningTestRepository.save(test);
 
         for (Long groupId : request.groupIds()) {

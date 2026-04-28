@@ -12,7 +12,7 @@ public class TestDtos {
     public record CreateTestRequest(
         @NotBlank String title,
         @NotBlank String description,
-        Long lectureId,
+        @NotNull Long lectureId,
         @NotNull Long subjectId,
         @NotEmpty List<Long> groupIds,
         @NotNull OffsetDateTime dueAt,

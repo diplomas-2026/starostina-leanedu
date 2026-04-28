@@ -1,7 +1,7 @@
 import { Alert, Button, Card, Group, Loader, MultiSelect, NumberInput, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { teacherApi, testApi } from '../api/services';
+import { lectureApi, teacherApi, testApi } from '../api/services';
 import { extractError } from '../utils/errors';
 
 export default function CreateTestPage() {
@@ -10,6 +10,7 @@ export default function CreateTestPage() {
   const [form, setForm] = useState({
     title: '',
     description: '',
+    lectureId: '',
     subjectId: '',
     groupIds: [],
     dueAtLocal: '',
@@ -21,8 +22,10 @@ export default function CreateTestPage() {
   });
   const [subjects, setSubjects] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [lectures, setLectures] = useState([]);
   const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [loadingGroups, setLoadingGroups] = useState(false);
+  const [loadingLectures, setLoadingLectures] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -56,7 +59,8 @@ export default function CreateTestPage() {
   useEffect(() => {
     if (!form.subjectId) {
       setGroups([]);
-      setForm((prev) => ({ ...prev, groupIds: [] }));
+      setLectures([]);
+      setForm((prev) => ({ ...prev, groupIds: [], lectureId: '' }));
       return;
     }
     const loadGroups = async () => {
@@ -82,6 +86,33 @@ export default function CreateTestPage() {
     loadGroups();
   }, [form.subjectId]);
 
+  useEffect(() => {
+    if (!form.subjectId) {
+      return;
+    }
+    const loadLectures = async () => {
+      setLoadingLectures(true);
+      setError('');
+      try {
+        const { data } = await lectureApi.list(form.subjectId);
+        const options = data.map((lecture) => ({
+          value: String(lecture.id),
+          label: lecture.title,
+        }));
+        setLectures(options);
+        setForm((prev) => ({
+          ...prev,
+          lectureId: options.some((option) => option.value === prev.lectureId) ? prev.lectureId : (options[0]?.value || ''),
+        }));
+      } catch (err) {
+        setError(extractError(err, 'Не удалось загрузить лекции по выбранной дисциплине'));
+      } finally {
+        setLoadingLectures(false);
+      }
+    };
+    loadLectures();
+  }, [form.subjectId]);
+
   const disciplineName = useMemo(
     () => subjects.find((item) => item.value === form.subjectId)?.label || '—',
     [subjects, form.subjectId],
@@ -99,6 +130,10 @@ export default function CreateTestPage() {
       setError('Выберите хотя бы одну группу');
       return;
     }
+    if (!form.lectureId) {
+      setError('Выберите лекцию');
+      return;
+    }
     if (!form.dueAtLocal) {
       setError('Укажите дедлайн');
       return;
@@ -109,6 +144,7 @@ export default function CreateTestPage() {
       await testApi.create({
         title: form.title,
         description: form.description,
+        lectureId: Number(form.lectureId),
         subjectId: Number(form.subjectId),
         groupIds: form.groupIds.map(Number),
         dueAt: new Date(form.dueAtLocal).toISOString(),
@@ -182,6 +218,17 @@ export default function CreateTestPage() {
               searchable
               nothingFoundMessage={loadingGroups ? 'Загрузка...' : 'Группы не найдены'}
               disabled={!form.subjectId || loadingGroups}
+              required
+            />
+
+            <Select
+              label="Лекция (обязательная привязка)"
+              data={lectures}
+              value={form.lectureId}
+              onChange={(value) => setForm({ ...form, lectureId: value || '' })}
+              searchable
+              nothingFoundMessage={loadingLectures ? 'Загрузка...' : 'Лекции не найдены'}
+              disabled={!form.subjectId || loadingLectures}
               required
             />
 

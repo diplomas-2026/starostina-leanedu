@@ -1,7 +1,7 @@
-import { Alert, Badge, Button, Card, Group, Loader, List, Stack, Text, Title } from '@mantine/core';
+import { Alert, Badge, Button, Card, Group, Loader, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { testApi } from '../api/services';
+import { teacherApi, testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
 import { publishStatusLabel } from '../utils/labels';
@@ -10,6 +10,10 @@ export default function TestDetailsPage() {
   const { user } = useAuth();
   const { id } = useParams();
   const [test, setTest] = useState(null);
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [assignForm, setAssignForm] = useState({ groupId: '', dueAtLocal: '' });
+  const [assigning, setAssigning] = useState(false);
+  const [removingAssignmentId, setRemovingAssignmentId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -19,6 +23,12 @@ export default function TestDetailsPage() {
     try {
       const { data } = await testApi.get(id);
       setTest(data);
+      if (user?.role === 'TEACHER' && data?.subjectId) {
+        const groupsResp = await teacherApi.groups(data.subjectId);
+        const options = groupsResp.data.map((group) => ({ value: String(group.id), label: `${group.code} — ${group.name}` }));
+        setAvailableGroups(options);
+        setAssignForm((prev) => ({ ...prev, groupId: prev.groupId || options[0]?.value || '' }));
+      }
     } catch (err) {
       setError(extractError(err, 'Не удалось загрузить тест'));
     } finally {
@@ -28,7 +38,45 @@ export default function TestDetailsPage() {
 
   useEffect(() => {
     load();
-  }, [id]);
+  }, [id, user?.role]);
+
+  const assignToGroup = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!assignForm.groupId) {
+      setError('Выберите группу');
+      return;
+    }
+    if (!assignForm.dueAtLocal) {
+      setError('Укажите дедлайн');
+      return;
+    }
+    setAssigning(true);
+    try {
+      await testApi.assign(id, {
+        groupId: Number(assignForm.groupId),
+        dueAt: new Date(assignForm.dueAtLocal).toISOString(),
+      });
+      await load();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось назначить тест группе'));
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const removeAssignment = async (assignmentId) => {
+    setError('');
+    setRemovingAssignmentId(assignmentId);
+    try {
+      await testApi.removeAssignment(id, assignmentId);
+      await load();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось удалить назначение'));
+    } finally {
+      setRemovingAssignmentId(null);
+    }
+  };
 
   if (loading) {
     return <Loader color="teal" />;
@@ -68,21 +116,66 @@ export default function TestDetailsPage() {
 
       <Card withBorder>
         <Title order={4} mb="sm">Назначение теста</Title>
+        {user?.role === 'TEACHER' && (
+          <form onSubmit={assignToGroup}>
+            <Stack mb="md">
+              <Select
+                label="Группа"
+                data={availableGroups}
+                value={assignForm.groupId}
+                onChange={(value) => setAssignForm((prev) => ({ ...prev, groupId: value || '' }))}
+                searchable
+                required
+              />
+              <TextInput
+                type="datetime-local"
+                label="Дедлайн"
+                value={assignForm.dueAtLocal}
+                onChange={(e) => setAssignForm((prev) => ({ ...prev, dueAtLocal: e.target.value }))}
+                required
+              />
+              <Button type="submit" loading={assigning}>Назначить группе</Button>
+            </Stack>
+          </form>
+        )}
         {test.assignments?.length ? (
-          <List spacing={6}>
-            {test.assignments.map((assignment) => (
-              <List.Item key={assignment.assignmentId}>
-                {assignment.groupCode} — {assignment.groupName}, дедлайн:{' '}
-                {new Date(assignment.dueAt).toLocaleString('ru-RU', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </List.Item>
-            ))}
-          </List>
+          <Table striped>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Группа</Table.Th>
+                <Table.Th>Дедлайн</Table.Th>
+                {user?.role === 'TEACHER' ? <Table.Th>Действие</Table.Th> : null}
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {test.assignments.map((assignment) => (
+                <Table.Tr key={assignment.assignmentId}>
+                  <Table.Td>{assignment.groupCode} — {assignment.groupName}</Table.Td>
+                  <Table.Td>
+                    {new Date(assignment.dueAt).toLocaleString('ru-RU', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Table.Td>
+                  {user?.role === 'TEACHER' ? (
+                    <Table.Td>
+                      <Button
+                        variant="light"
+                        color="red"
+                        loading={removingAssignmentId === assignment.assignmentId}
+                        onClick={() => removeAssignment(assignment.assignmentId)}
+                      >
+                        Удалить
+                      </Button>
+                    </Table.Td>
+                  ) : null}
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
         ) : (
           <Alert color="yellow">Тест пока не назначен ни одной группе.</Alert>
         )}

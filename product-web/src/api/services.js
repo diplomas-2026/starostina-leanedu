@@ -28,6 +28,7 @@ export const testApi = {
   publish: (id) => api.patch(`/api/tests/${id}/publish`),
   addQuestion: (id, payload) => api.post(`/api/tests/${id}/questions`, payload),
   assign: (id, payload) => api.post(`/api/tests/${id}/assignments`, payload),
+  removeAssignment: (id, assignmentId) => api.delete(`/api/tests/${id}/assignments/${assignmentId}`),
   startAttempt: (id) => api.post(`/api/tests/${id}/attempts/start`),
   submitAttempt: (attemptId, payload) => api.post(`/api/tests/attempts/${attemptId}/submit`, payload),
   myAttempts: () => api.get('/api/tests/attempts/my'),

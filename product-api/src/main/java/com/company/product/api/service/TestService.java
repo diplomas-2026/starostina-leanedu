@@ -182,12 +182,31 @@ public class TestService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на эту дисциплину в выбранной группе");
         }
 
-        TestAssignment assignment = new TestAssignment();
-        assignment.setTest(test);
-        assignment.setGroup(group);
+        TestAssignment assignment = testAssignmentRepository.findByTestOrderByDueAtAsc(test).stream()
+            .filter(existing -> existing.getGroup().getId().equals(group.getId()) && existing.isActive())
+            .findFirst()
+            .orElseGet(() -> {
+                TestAssignment created = new TestAssignment();
+                created.setTest(test);
+                created.setGroup(group);
+                created.setActive(true);
+                return created;
+            });
         assignment.setDueAt(request.dueAt());
-        assignment.setActive(true);
         testAssignmentRepository.save(assignment);
+    }
+
+    public void removeAssignment(Long testId, Long assignmentId, AppUser teacher) {
+        LearningTest test = getTestOrThrow(testId);
+        if (test.getCreatedBy() == null || !test.getCreatedBy().getId().equals(teacher.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав для изменения назначения");
+        }
+        TestAssignment assignment = testAssignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Назначение не найдено"));
+        if (!assignment.getTest().getId().equals(test.getId())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Назначение не относится к этому тесту");
+        }
+        testAssignmentRepository.delete(assignment);
     }
 
     public TestDtos.AttemptItem startAttempt(Long testId, AppUser student) {

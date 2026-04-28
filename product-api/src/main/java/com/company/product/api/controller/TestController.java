@@ -53,6 +53,12 @@ public class TestController {
         testService.assignTest(id, request, currentUserService.requireCurrentUser());
     }
 
+    @DeleteMapping("/{id}/assignments/{assignmentId}")
+    @PreAuthorize("hasRole('TEACHER')")
+    public void removeAssignment(@PathVariable Long id, @PathVariable Long assignmentId) {
+        testService.removeAssignment(id, assignmentId, currentUserService.requireCurrentUser());
+    }
+
     @PostMapping("/{id}/attempts/start")
     @PreAuthorize("hasRole('STUDENT')")
     public TestDtos.AttemptItem startAttempt(@PathVariable Long id) {

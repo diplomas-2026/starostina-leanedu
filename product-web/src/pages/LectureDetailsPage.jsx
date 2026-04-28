@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import { Alert, Badge, Button, Group, Loader, Stack, Text, Textarea, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { aiApi, lectureApi } from '../api/services';
@@ -16,6 +16,7 @@ export default function LectureDetailsPage() {
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [generatedTestId, setGeneratedTestId] = useState(null);
+  const [teacherPrompt, setTeacherPrompt] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -42,8 +43,12 @@ export default function LectureDetailsPage() {
     setError('');
     setSuccess('');
     setGeneratedTestId(null);
+    if (!teacherPrompt.trim()) {
+      setError('Введите требования к генерации для LLM');
+      return;
+    }
     try {
-      const { data } = await aiApi.generateFromLecture(id);
+      const { data } = await aiApi.generateFromLecture(id, teacherPrompt.trim());
       setGeneratedTestId(data);
       setSuccess(`Черновик теста создан. ID теста: ${data}`);
       const limitsResp = await aiApi.limits();
@@ -98,9 +103,18 @@ export default function LectureDetailsPage() {
 
       <AiLimitsCard limits={limits} />
       {user?.role === 'TEACHER' && (
-        <Alert color="blue">
-          Генерация через LLM: откройте нужную лекцию и нажмите <b>Сгенерировать тест</b>. После генерации появится кнопка перехода в тест.
-        </Alert>
+        <Stack>
+          <Alert color="blue">
+            Генерация через LLM: опишите требования к тесту (стиль, сложность, акценты), затем нажмите <b>Сгенерировать тест</b>.
+          </Alert>
+          <Textarea
+            label="Инструкция для LLM"
+            placeholder="Например: сгенерируй вопросы базового уровня, с акцентом на 5S и виды потерь..."
+            minRows={3}
+            value={teacherPrompt}
+            onChange={(e) => setTeacherPrompt(e.currentTarget.value)}
+          />
+        </Stack>
       )}
 
       {error && <Alert color="red">{error}</Alert>}

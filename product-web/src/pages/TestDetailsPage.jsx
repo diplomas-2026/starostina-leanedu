@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Card, Checkbox, Group, Loader, List, NumberInput, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Badge, Button, Card, Checkbox, Group, Loader, List, NumberInput, Stack, Text, TextInput, Textarea, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { aiApi, testApi } from '../api/services';
@@ -15,6 +15,9 @@ export default function TestDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [savingQuestion, setSavingQuestion] = useState(false);
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [showAiForm, setShowAiForm] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [questionForm, setQuestionForm] = useState({
@@ -108,8 +111,13 @@ export default function TestDetailsPage() {
     setGeneratingAi(true);
     setError('');
     setMessage('');
+    if (!aiPrompt.trim()) {
+      setError('Введите требования к генерации вопроса через LLM');
+      setGeneratingAi(false);
+      return;
+    }
     try {
-      const { data } = await aiApi.generateQuestionsForTest(id);
+      const { data } = await aiApi.generateQuestionsForTest(id, aiPrompt.trim());
       setMessage(`LLM добавила вопросов: ${data}`);
       await load();
     } catch (err) {
@@ -148,63 +156,85 @@ export default function TestDetailsPage() {
 
       {user?.role === 'TEACHER' && (
         <Card withBorder>
-          <Group justify="space-between" mb="md">
-            <Title order={4}>LLM: догенерация вопросов</Title>
-            <Button onClick={generateQuestionsWithAi} loading={generatingAi} disabled={limits?.remaining === 0}>
-              Догенерировать вопросы
+          <Group mb="md">
+            <Button variant={showAiForm ? 'filled' : 'light'} onClick={() => setShowAiForm((prev) => !prev)}>
+              Догенерировать вопросы через LLM
+            </Button>
+            <Button variant={showManualForm ? 'filled' : 'light'} onClick={() => setShowManualForm((prev) => !prev)}>
+              Добавить вручную
             </Button>
           </Group>
-          <Alert color="blue" mb="md">
-            Можно в любой момент добавить ещё вопросы через LLM. Используется тот же общий дневной лимит токенов.
-          </Alert>
 
-          <Title order={4} mb="sm">Добавить вопрос</Title>
-          <form onSubmit={submitQuestion}>
-            <Stack>
-              <TextInput
-                label="Текст вопроса"
-                value={questionForm.text}
-                onChange={(e) => setQuestionForm((prev) => ({ ...prev, text: e.target.value }))}
-                required
+          {showAiForm && (
+            <Stack mb="md">
+              <Title order={4}>LLM: догенерация вопросов</Title>
+              <Alert color="blue">
+                Опишите, какие вопросы нужно сгенерировать (тема, сложность, стиль). Используется общий дневной лимит токенов.
+              </Alert>
+              <Textarea
+                label="Инструкция для LLM"
+                placeholder="Например: сгенерируй 3 вопроса среднего уровня по кайдзен и картированию потока..."
+                minRows={3}
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.currentTarget.value)}
               />
-              <NumberInput
-                label="Баллы за вопрос"
-                min={1}
-                value={questionForm.points}
-                onChange={(value) => setQuestionForm((prev) => ({ ...prev, points: Number(value) || 1 }))}
-                required
-              />
-              <Title order={5}>Варианты ответа</Title>
-              {questionForm.options.map((option, index) => (
-                <Group key={index} align="end">
+              <Button onClick={generateQuestionsWithAi} loading={generatingAi} disabled={limits?.remaining === 0}>
+                Сгенерировать через LLM
+              </Button>
+            </Stack>
+          )}
+
+          {showManualForm && (
+            <>
+              <Title order={4} mb="sm">Добавить вопрос вручную</Title>
+              <form onSubmit={submitQuestion}>
+                <Stack>
                   <TextInput
-                    style={{ flex: 1 }}
-                    label={`Вариант ${index + 1}`}
-                    value={option.text}
-                    onChange={(e) => setOption(index, { text: e.target.value })}
+                    label="Текст вопроса"
+                    value={questionForm.text}
+                    onChange={(e) => setQuestionForm((prev) => ({ ...prev, text: e.target.value }))}
                     required
                   />
-                  <Checkbox
-                    label="Правильный"
-                    checked={option.correct}
-                    onChange={(e) => setOption(index, { correct: e.currentTarget.checked })}
+                  <NumberInput
+                    label="Баллы за вопрос"
+                    min={1}
+                    value={questionForm.points}
+                    onChange={(value) => setQuestionForm((prev) => ({ ...prev, points: Number(value) || 1 }))}
+                    required
                   />
-                  <Button
-                    variant="light"
-                    color="red"
-                    onClick={() => removeOption(index)}
-                    disabled={questionForm.options.length <= 2}
-                  >
-                    Удалить
-                  </Button>
-                </Group>
-              ))}
-              <Group>
-                <Button type="button" variant="light" onClick={addOption}>Добавить вариант</Button>
-                <Button type="submit" loading={savingQuestion}>Сохранить вопрос</Button>
-              </Group>
-            </Stack>
-          </form>
+                  <Title order={5}>Варианты ответа</Title>
+                  {questionForm.options.map((option, index) => (
+                    <Group key={index} align="end">
+                      <TextInput
+                        style={{ flex: 1 }}
+                        label={`Вариант ${index + 1}`}
+                        value={option.text}
+                        onChange={(e) => setOption(index, { text: e.target.value })}
+                        required
+                      />
+                      <Checkbox
+                        label="Правильный"
+                        checked={option.correct}
+                        onChange={(e) => setOption(index, { correct: e.currentTarget.checked })}
+                      />
+                      <Button
+                        variant="light"
+                        color="red"
+                        onClick={() => removeOption(index)}
+                        disabled={questionForm.options.length <= 2}
+                      >
+                        Удалить
+                      </Button>
+                    </Group>
+                  ))}
+                  <Group>
+                    <Button type="button" variant="light" onClick={addOption}>Добавить вариант</Button>
+                    <Button type="submit" loading={savingQuestion}>Сохранить вопрос</Button>
+                  </Group>
+                </Stack>
+              </form>
+            </>
+          )}
         </Card>
       )}
 

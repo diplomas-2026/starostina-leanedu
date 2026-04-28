@@ -46,7 +46,7 @@ public class AiService {
     }
 
     @Transactional
-    public LearningTest generateDraftFromLecture(Long lectureId, AppUser user) {
+    public LearningTest generateDraftFromLecture(Long lectureId, AppUser user, String teacherPrompt) {
         Lecture lecture = lectureRepository.findById(lectureId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена"));
 
@@ -66,6 +66,7 @@ public class AiService {
 
         String prompt = "Сгенерируй тест по лекции. Верни строго JSON формата {\"title\":string,\"description\":string,\"questions\":[{\"text\":string,\"points\":int,\"explanation\":string,\"options\":[{\"text\":string,\"correct\":boolean}]}]}. " +
             "Нужно 5 вопросов, каждый с 4 вариантами и одним правильным ответом. Язык русский. Текст лекции: " + lecture.getContent();
+        String fullPrompt = prompt + "\nДополнительные требования преподавателя: " + teacherPrompt;
 
         String raw;
         int promptTokens;
@@ -78,22 +79,22 @@ public class AiService {
                 {"text":"Какой инструмент относится к Lean?","points":2,"explanation":"5S — базовый инструмент организации рабочего места.","options":[{"text":"5S","correct":true},{"text":"SWOT","correct":false},{"text":"PEST","correct":false},{"text":"Waterfall","correct":false}]}
                 ]}
                 """;
-            promptTokens = estimateTokens(prompt);
+            promptTokens = estimateTokens(fullPrompt);
             completionTokens = estimateTokens(raw);
             totalTokens = promptTokens + completionTokens;
         } else {
             ChatClient chatClient = chatClientBuilder.build();
-            ChatResponse response = chatClient.prompt().user(prompt).call().chatResponse();
+            ChatResponse response = chatClient.prompt().user(fullPrompt).call().chatResponse();
             raw = response.getResult().getOutput().getText();
 
             Usage responseUsage = response.getMetadata() != null ? response.getMetadata().getUsage() : null;
-            promptTokens = responseUsage != null && responseUsage.getPromptTokens() != null ? responseUsage.getPromptTokens().intValue() : estimateTokens(prompt);
+            promptTokens = responseUsage != null && responseUsage.getPromptTokens() != null ? responseUsage.getPromptTokens().intValue() : estimateTokens(fullPrompt);
             completionTokens = responseUsage != null && responseUsage.getCompletionTokens() != null ? responseUsage.getCompletionTokens().intValue() : estimateTokens(raw);
             totalTokens = responseUsage != null && responseUsage.getTotalTokens() != null ? responseUsage.getTotalTokens().intValue() : (promptTokens + completionTokens);
         }
 
         if (usage.getUsedTokens() + totalTokens > gigachatProperties.getDailyLimit()) {
-            saveGeneration(user, lecture, AiGenerationStatus.REJECTED_BY_LIMIT, raw, promptTokens, completionTokens, totalTokens, prompt);
+            saveGeneration(user, lecture, AiGenerationStatus.REJECTED_BY_LIMIT, raw, promptTokens, completionTokens, totalTokens, fullPrompt);
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Недостаточно токенов в дневном лимите для этой генерации");
         }
 
@@ -101,7 +102,7 @@ public class AiService {
         try {
             parsed = objectMapper.readValue(raw, objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
         } catch (Exception ex) {
-            saveGeneration(user, lecture, AiGenerationStatus.ERROR, raw, promptTokens, completionTokens, totalTokens, prompt);
+            saveGeneration(user, lecture, AiGenerationStatus.ERROR, raw, promptTokens, completionTokens, totalTokens, fullPrompt);
             throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM вернула невалидный ответ, попробуйте ещё раз");
         }
 
@@ -145,13 +146,13 @@ public class AiService {
 
         usage.setUsedTokens(usage.getUsedTokens() + totalTokens);
         aiDailyUsageRepository.save(usage);
-        saveGeneration(user, lecture, AiGenerationStatus.SUCCESS, raw, promptTokens, completionTokens, totalTokens, prompt);
+        saveGeneration(user, lecture, AiGenerationStatus.SUCCESS, raw, promptTokens, completionTokens, totalTokens, fullPrompt);
 
         return test;
     }
 
     @Transactional
-    public Integer generateQuestionsForExistingTest(Long testId, AppUser user) {
+    public Integer generateQuestionsForExistingTest(Long testId, AppUser user, String teacherPrompt) {
         LearningTest test = learningTestRepository.findById(testId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Тест не найден"));
         if (test.getCreatedBy() == null || !Objects.equals(test.getCreatedBy().getId(), user.getId())) {
@@ -186,6 +187,7 @@ public class AiService {
             "Каждый вопрос: 4 варианта, минимум 1 правильный. Не повторяй существующие вопросы. " +
             "Язык русский. Тест: " + test.getTitle() + ". Существующие вопросы:\n" + existingQuestions + "\n" +
             "Текст лекции: " + lecture.getContent();
+        String fullPrompt = prompt + "\nДополнительные требования преподавателя: " + teacherPrompt;
 
         String raw;
         int promptTokens;
@@ -199,22 +201,22 @@ public class AiService {
                 {"text":"Что обычно используют для визуализации потока создания ценности?","points":2,"options":[{"text":"SIPOC","correct":false},{"text":"VSM","correct":true},{"text":"PERT","correct":false},{"text":"ER-диаграмму","correct":false}]}
                 ]}
                 """;
-            promptTokens = estimateTokens(prompt);
+            promptTokens = estimateTokens(fullPrompt);
             completionTokens = estimateTokens(raw);
             totalTokens = promptTokens + completionTokens;
         } else {
             ChatClient chatClient = chatClientBuilder.build();
-            ChatResponse response = chatClient.prompt().user(prompt).call().chatResponse();
+            ChatResponse response = chatClient.prompt().user(fullPrompt).call().chatResponse();
             raw = response.getResult().getOutput().getText();
 
             Usage responseUsage = response.getMetadata() != null ? response.getMetadata().getUsage() : null;
-            promptTokens = responseUsage != null && responseUsage.getPromptTokens() != null ? responseUsage.getPromptTokens().intValue() : estimateTokens(prompt);
+            promptTokens = responseUsage != null && responseUsage.getPromptTokens() != null ? responseUsage.getPromptTokens().intValue() : estimateTokens(fullPrompt);
             completionTokens = responseUsage != null && responseUsage.getCompletionTokens() != null ? responseUsage.getCompletionTokens().intValue() : estimateTokens(raw);
             totalTokens = responseUsage != null && responseUsage.getTotalTokens() != null ? responseUsage.getTotalTokens().intValue() : (promptTokens + completionTokens);
         }
 
         if (usage.getUsedTokens() + totalTokens > gigachatProperties.getDailyLimit()) {
-            saveGeneration(user, lecture, AiGenerationStatus.REJECTED_BY_LIMIT, raw, promptTokens, completionTokens, totalTokens, prompt);
+            saveGeneration(user, lecture, AiGenerationStatus.REJECTED_BY_LIMIT, raw, promptTokens, completionTokens, totalTokens, fullPrompt);
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Недостаточно токенов в дневном лимите для этой генерации");
         }
 
@@ -222,7 +224,7 @@ public class AiService {
         try {
             parsed = objectMapper.readValue(raw, objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
         } catch (Exception ex) {
-            saveGeneration(user, lecture, AiGenerationStatus.ERROR, raw, promptTokens, completionTokens, totalTokens, prompt);
+            saveGeneration(user, lecture, AiGenerationStatus.ERROR, raw, promptTokens, completionTokens, totalTokens, fullPrompt);
             throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM вернула невалидный ответ, попробуйте ещё раз");
         }
 
@@ -254,7 +256,7 @@ public class AiService {
 
         usage.setUsedTokens(usage.getUsedTokens() + totalTokens);
         aiDailyUsageRepository.save(usage);
-        saveGeneration(user, lecture, AiGenerationStatus.SUCCESS, raw, promptTokens, completionTokens, totalTokens, prompt);
+        saveGeneration(user, lecture, AiGenerationStatus.SUCCESS, raw, promptTokens, completionTokens, totalTokens, fullPrompt);
 
         return createdCount;
     }

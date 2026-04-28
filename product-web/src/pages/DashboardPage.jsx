@@ -51,37 +51,64 @@ export default function DashboardPage() {
 
           {summary && (
             <>
+              <Alert color="blue">
+                На этом экране показана только ваша статистика как преподавателя.
+                Учитываются только ваши тесты, ваши лекции и ваши назначенные группы.
+              </Alert>
+
               <Grid>
                 <Grid.Col span={{ base: 12, md: 3 }}>
-                  <Card withBorder><Text size="sm" c="dimmed">Лекции</Text><Text fw={700} size="xl">{summary.lecturesCount}</Text></Card>
+                  <Card withBorder>
+                    <Text size="sm" c="dimmed">Лекции (ваши)</Text>
+                    <Text fw={700} size="xl">{summary.lecturesCount}</Text>
+                    <Text size="xs" c="dimmed">Количество лекций, созданных вами</Text>
+                  </Card>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 3 }}>
-                  <Card withBorder><Text size="sm" c="dimmed">Тесты</Text><Text fw={700} size="xl">{summary.testsCount}</Text></Card>
+                  <Card withBorder>
+                    <Text size="sm" c="dimmed">Тесты (ваши)</Text>
+                    <Text fw={700} size="xl">{summary.testsCount}</Text>
+                    <Text size="xs" c="dimmed">Количество тестов, созданных вами</Text>
+                  </Card>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 3 }}>
-                  <Card withBorder><Text size="sm" c="dimmed">Группы</Text><Text fw={700} size="xl">{summary.groupsCount}</Text></Card>
+                  <Card withBorder>
+                    <Text size="sm" c="dimmed">Группы (назначены вам)</Text>
+                    <Text fw={700} size="xl">{summary.groupsCount}</Text>
+                    <Text size="xs" c="dimmed">Группы, где вы ведёте дисциплины</Text>
+                  </Card>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 3 }}>
-                  <Card withBorder><Text size="sm" c="dimmed">Дисциплины</Text><Text fw={700} size="xl">{summary.disciplinesCount}</Text></Card>
+                  <Card withBorder>
+                    <Text size="sm" c="dimmed">Дисциплины (ваши)</Text>
+                    <Text fw={700} size="xl">{summary.disciplinesCount}</Text>
+                    <Text size="xs" c="dimmed">Уникальные дисциплины из ваших назначений</Text>
+                  </Card>
                 </Grid.Col>
               </Grid>
 
               <Card withBorder>
                 <Stack gap="sm">
                   <Group justify="space-between">
-                    <Text fw={600}>Успеваемость по вашим тестам</Text>
+                    <Text fw={600}>Процент сданных попыток по вашим тестам</Text>
                     <Text>{summary.passRatePercent}%</Text>
                   </Group>
                   <Progress value={summary.passRatePercent} color="teal" size="lg" radius="xl" />
                   <Text size="sm" c="dimmed">
-                    Сдано попыток: {summary.submittedAttemptsCount} · Студентов в ваших группах: {summary.studentsCount}
+                    Формула: (сдано на 3,4,5 / все отправленные попытки) × 100.
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    Отправленных попыток: {summary.submittedAttemptsCount} · Уникальных студентов в ваших группах: {summary.studentsCount}
                   </Text>
                 </Stack>
               </Card>
 
               <Card withBorder>
                 <Stack>
-                  <Text fw={600}>Нагрузка по группам</Text>
+                  <Text fw={600}>Нагрузка по группам (детализация)</Text>
+                  <Text size="sm" c="dimmed">
+                    По каждой группе показано: сколько в ней студентов и сколько ваших тестов назначено этой группе.
+                  </Text>
                   {summary.groups.length === 0 ? (
                     <Alert color="yellow">У вас пока нет назначенных групп.</Alert>
                   ) : (
@@ -93,7 +120,7 @@ export default function DashboardPage() {
                             Студентов: {group.studentsCount} · Тестов: {group.testsAssignedCount}
                           </Text>
                         </Group>
-                        <Progress value={Math.min(100, group.testsAssignedCount * 10)} color="blue" />
+                        <Progress value={Math.min(100, group.testsAssignedCount * 20)} color="blue" />
                       </Stack>
                     ))
                   )}

@@ -20,6 +20,7 @@ import java.time.*;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -147,6 +148,115 @@ public class AiService {
         saveGeneration(user, lecture, AiGenerationStatus.SUCCESS, raw, promptTokens, completionTokens, totalTokens, prompt);
 
         return test;
+    }
+
+    @Transactional
+    public Integer generateQuestionsForExistingTest(Long testId, AppUser user) {
+        LearningTest test = learningTestRepository.findById(testId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Тест не найден"));
+        if (test.getCreatedBy() == null || !Objects.equals(test.getCreatedBy().getId(), user.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав для генерации вопросов");
+        }
+        Lecture lecture = test.getLecture();
+        if (lecture == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "У теста нет привязанной лекции");
+        }
+
+        LocalDate today = LocalDate.now(ZoneId.of(gigachatProperties.getTimezone()));
+        AiDailyUsage usage = aiDailyUsageRepository.findByUsageDate(today).orElseGet(() -> {
+            AiDailyUsage created = new AiDailyUsage();
+            created.setUsageDate(today);
+            created.setUsedTokens(0);
+            return created;
+        });
+
+        int remaining = gigachatProperties.getDailyLimit() - usage.getUsedTokens();
+        if (remaining <= 0) {
+            saveGeneration(user, lecture, AiGenerationStatus.REJECTED_BY_LIMIT, "{}", 0, 0, 0, "limit");
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Суточный лимит токенов исчерпан. Сброс в 00:00 (Самара)");
+        }
+
+        String existingQuestions = questionRepository.findByTestOrderBySortOrderAsc(test).stream()
+            .map(q -> "- " + q.getText())
+            .reduce((a, b) -> a + "\n" + b)
+            .orElse("нет");
+
+        String prompt = "Сгенерируй 3 дополнительных вопроса для существующего теста. " +
+            "Верни строго JSON формата {\"questions\":[{\"text\":string,\"points\":int,\"options\":[{\"text\":string,\"correct\":boolean}]}]}. " +
+            "Каждый вопрос: 4 варианта, минимум 1 правильный. Не повторяй существующие вопросы. " +
+            "Язык русский. Тест: " + test.getTitle() + ". Существующие вопросы:\n" + existingQuestions + "\n" +
+            "Текст лекции: " + lecture.getContent();
+
+        String raw;
+        int promptTokens;
+        int completionTokens;
+        int totalTokens;
+        if ("demo-key".equals(apiKey)) {
+            raw = """
+                {"questions":[
+                {"text":"Что такое муда в Lean-подходе?","points":2,"options":[{"text":"Тип визуальной доски","correct":false},{"text":"Потери, не создающие ценность","correct":true},{"text":"Метод начисления зарплаты","correct":false},{"text":"План закупок","correct":false}]},
+                {"text":"Какова цель стандартизации операций?","points":2,"options":[{"text":"Спрятать ошибки","correct":false},{"text":"Повысить вариативность процесса","correct":false},{"text":"Обеспечить стабильность и предсказуемость","correct":true},{"text":"Усложнить обучение","correct":false}]},
+                {"text":"Что обычно используют для визуализации потока создания ценности?","points":2,"options":[{"text":"SIPOC","correct":false},{"text":"VSM","correct":true},{"text":"PERT","correct":false},{"text":"ER-диаграмму","correct":false}]}
+                ]}
+                """;
+            promptTokens = estimateTokens(prompt);
+            completionTokens = estimateTokens(raw);
+            totalTokens = promptTokens + completionTokens;
+        } else {
+            ChatClient chatClient = chatClientBuilder.build();
+            ChatResponse response = chatClient.prompt().user(prompt).call().chatResponse();
+            raw = response.getResult().getOutput().getText();
+
+            Usage responseUsage = response.getMetadata() != null ? response.getMetadata().getUsage() : null;
+            promptTokens = responseUsage != null && responseUsage.getPromptTokens() != null ? responseUsage.getPromptTokens().intValue() : estimateTokens(prompt);
+            completionTokens = responseUsage != null && responseUsage.getCompletionTokens() != null ? responseUsage.getCompletionTokens().intValue() : estimateTokens(raw);
+            totalTokens = responseUsage != null && responseUsage.getTotalTokens() != null ? responseUsage.getTotalTokens().intValue() : (promptTokens + completionTokens);
+        }
+
+        if (usage.getUsedTokens() + totalTokens > gigachatProperties.getDailyLimit()) {
+            saveGeneration(user, lecture, AiGenerationStatus.REJECTED_BY_LIMIT, raw, promptTokens, completionTokens, totalTokens, prompt);
+            throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Недостаточно токенов в дневном лимите для этой генерации");
+        }
+
+        Map<String, Object> parsed;
+        try {
+            parsed = objectMapper.readValue(raw, objectMapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
+        } catch (Exception ex) {
+            saveGeneration(user, lecture, AiGenerationStatus.ERROR, raw, promptTokens, completionTokens, totalTokens, prompt);
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "LLM вернула невалидный ответ, попробуйте ещё раз");
+        }
+
+        int createdCount = 0;
+        int nextSortOrder = questionRepository.findByTestOrderBySortOrderAsc(test).size() + 1;
+        List<Map<String, Object>> questions = (List<Map<String, Object>>) parsed.get("questions");
+        if (questions != null) {
+            for (Map<String, Object> questionMap : questions) {
+                Question question = new Question();
+                question.setTest(test);
+                question.setText((String) questionMap.getOrDefault("text", "Вопрос"));
+                question.setPoints(((Number) questionMap.getOrDefault("points", 1)).intValue());
+                question.setSortOrder(nextSortOrder++);
+                question = questionRepository.save(question);
+                createdCount++;
+
+                List<Map<String, Object>> options = (List<Map<String, Object>>) questionMap.get("options");
+                if (options != null) {
+                    for (Map<String, Object> optionMap : options) {
+                        QuestionOption option = new QuestionOption();
+                        option.setQuestion(question);
+                        option.setText((String) optionMap.getOrDefault("text", "Вариант"));
+                        option.setCorrect(Boolean.TRUE.equals(optionMap.get("correct")));
+                        questionOptionRepository.save(option);
+                    }
+                }
+            }
+        }
+
+        usage.setUsedTokens(usage.getUsedTokens() + totalTokens);
+        aiDailyUsageRepository.save(usage);
+        saveGeneration(user, lecture, AiGenerationStatus.SUCCESS, raw, promptTokens, completionTokens, totalTokens, prompt);
+
+        return createdCount;
     }
 
     private void saveGeneration(AppUser user, Lecture lecture, AiGenerationStatus status, String response, int promptTokens, int completionTokens, int totalTokens, String prompt) {

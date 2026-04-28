@@ -26,4 +26,10 @@ public class AiController {
         LearningTest test = aiService.generateDraftFromLecture(lectureId, currentUserService.requireCurrentUser());
         return test.getId();
     }
+
+    @PostMapping("/generate-questions-for-test/{testId}")
+    @PreAuthorize("hasRole('TEACHER')")
+    public Integer generateQuestionsForTest(@PathVariable Long testId) {
+        return aiService.generateQuestionsForExistingTest(testId, currentUserService.requireCurrentUser());
+    }
 }

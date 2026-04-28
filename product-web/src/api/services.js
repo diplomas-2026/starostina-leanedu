@@ -57,6 +57,7 @@ export const adminApi = {
 export const aiApi = {
   limits: () => api.get('/api/ai/limits'),
   generateFromLecture: (lectureId) => api.post(`/api/ai/generate-test-from-lecture/${lectureId}`),
+  generateQuestionsForTest: (testId) => api.post(`/api/ai/generate-questions-for-test/${testId}`),
 };
 
 export const gradebookApi = {

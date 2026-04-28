@@ -1,7 +1,8 @@
 import { Alert, Badge, Button, Card, Checkbox, Group, Loader, List, NumberInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { testApi } from '../api/services';
+import { aiApi, testApi } from '../api/services';
+import AiLimitsCard from '../components/AiLimitsCard';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
 import { publishStatusLabel } from '../utils/labels';
@@ -10,8 +11,10 @@ export default function TestDetailsPage() {
   const { user } = useAuth();
   const { id } = useParams();
   const [test, setTest] = useState(null);
+  const [limits, setLimits] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingQuestion, setSavingQuestion] = useState(false);
+  const [generatingAi, setGeneratingAi] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [questionForm, setQuestionForm] = useState({
@@ -27,8 +30,9 @@ export default function TestDetailsPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await testApi.get(id);
-      setTest(data);
+      const [testResp, limitsResp] = await Promise.all([testApi.get(id), aiApi.limits()]);
+      setTest(testResp.data);
+      setLimits(limitsResp.data);
     } catch (err) {
       setError(extractError(err, 'Не удалось загрузить тест'));
     } finally {
@@ -100,6 +104,21 @@ export default function TestDetailsPage() {
     }
   };
 
+  const generateQuestionsWithAi = async () => {
+    setGeneratingAi(true);
+    setError('');
+    setMessage('');
+    try {
+      const { data } = await aiApi.generateQuestionsForTest(id);
+      setMessage(`LLM добавила вопросов: ${data}`);
+      await load();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось сгенерировать вопросы через LLM'));
+    } finally {
+      setGeneratingAi(false);
+    }
+  };
+
   if (loading) {
     return <Loader color="teal" />;
   }
@@ -125,9 +144,20 @@ export default function TestDetailsPage() {
 
       {error && <Alert color="red">{error}</Alert>}
       {message && <Alert color="green">{message}</Alert>}
+      <AiLimitsCard limits={limits} />
 
       {user?.role === 'TEACHER' && (
         <Card withBorder>
+          <Group justify="space-between" mb="md">
+            <Title order={4}>LLM: догенерация вопросов</Title>
+            <Button onClick={generateQuestionsWithAi} loading={generatingAi} disabled={limits?.remaining === 0}>
+              Догенерировать вопросы
+            </Button>
+          </Group>
+          <Alert color="blue" mb="md">
+            Можно в любой момент добавить ещё вопросы через LLM. Используется тот же общий дневной лимит токенов.
+          </Alert>
+
           <Title order={4} mb="sm">Добавить вопрос</Title>
           <form onSubmit={submitQuestion}>
             <Stack>

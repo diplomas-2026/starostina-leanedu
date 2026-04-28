@@ -56,6 +56,21 @@ public class TestDtos {
         List<GradebookRow> rows
     ) {}
     public record TestOptionItem(Long id, String text, boolean correct) {}
+    public record AttemptOptionItem(Long id, String text) {}
+    public record AttemptQuestionItem(Long id, String text, Integer points, Integer sortOrder, List<AttemptOptionItem> options) {}
+    public record AttemptSessionItem(
+        Long attemptId,
+        Long testId,
+        String testTitle,
+        Integer timeLimitMin,
+        OffsetDateTime startedAt,
+        OffsetDateTime availableUntil,
+        String status,
+        Integer score,
+        Integer maxScore,
+        Integer grade,
+        List<AttemptQuestionItem> questions
+    ) {}
     public record TestQuestionItem(Long id, String text, Integer points, Integer sortOrder, List<TestOptionItem> options) {}
     public record TestAssignmentItem(Long assignmentId, Long groupId, String groupCode, String groupName, OffsetDateTime dueAt) {}
     public record TestDetailsItem(

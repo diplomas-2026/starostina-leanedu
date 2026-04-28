@@ -209,19 +209,27 @@ public class TestService {
         testAssignmentRepository.delete(assignment);
     }
 
-    public TestDtos.AttemptItem startAttempt(Long testId, AppUser student) {
+    public TestDtos.AttemptSessionItem startAttempt(Long testId, AppUser student) {
         LearningTest test = getTestOrThrow(testId);
         if (!test.isPublished()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Тест не опубликован");
         }
 
-        List<GroupStudent> memberships = groupStudentRepository.findByStudent(student);
-        boolean assigned = memberships.stream()
-            .flatMap(gs -> testAssignmentRepository.findByGroupAndActiveTrue(gs.getGroup()).stream())
-            .anyMatch(a -> a.getTest().getId().equals(testId));
+        TestAssignment assignment = resolveStudentAssignment(testId, student);
+        validateTestWindowOrThrow(test, assignment);
 
-        if (!assigned) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Тест не назначен студенту");
+        List<TestAttempt> attempts = testAttemptRepository.findByStudentAndTestOrderByStartedAtDesc(student, test);
+        TestAttempt inProgress = attempts.stream()
+            .filter(a -> a.getStatus() == AttemptStatus.IN_PROGRESS)
+            .findFirst()
+            .orElse(null);
+        if (inProgress != null) {
+            return toAttemptSession(inProgress, assignment, true);
+        }
+
+        long submittedCount = testAttemptRepository.countByStudentAndTestAndStatus(student, test, AttemptStatus.SUBMITTED);
+        if (submittedCount >= test.getAttemptsLimit()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Лимит попыток исчерпан");
         }
 
         TestAttempt attempt = new TestAttempt();
@@ -233,7 +241,17 @@ public class TestService {
         attempt.setMaxScore(0);
         attempt = testAttemptRepository.save(attempt);
 
-        return new TestDtos.AttemptItem(attempt.getId(), test.getId(), test.getTitle(), 0, 0, null, attempt.getStatus().name());
+        return toAttemptSession(attempt, assignment, true);
+    }
+
+    public TestDtos.AttemptSessionItem getAttemptSession(Long attemptId, AppUser student) {
+        TestAttempt attempt = testAttemptRepository.findById(attemptId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Попытка не найдена"));
+        if (!attempt.getStudent().getId().equals(student.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав");
+        }
+        TestAssignment assignment = resolveStudentAssignment(attempt.getTest().getId(), student);
+        return toAttemptSession(attempt, assignment, attempt.getStatus() == AttemptStatus.IN_PROGRESS);
     }
 
     public TestDtos.AttemptItem submitAttempt(Long attemptId, TestDtos.SubmitAttemptRequest request, AppUser student) {
@@ -244,6 +262,12 @@ public class TestService {
         }
         if (attempt.getStatus() == AttemptStatus.SUBMITTED) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Попытка уже отправлена");
+        }
+        TestAssignment assignment = resolveStudentAssignment(attempt.getTest().getId(), student);
+        validateTestWindowOrThrow(attempt.getTest(), assignment);
+        OffsetDateTime limitByTime = attempt.getStartedAt().plusMinutes(attempt.getTest().getTimeLimitMin());
+        if (OffsetDateTime.now().isAfter(limitByTime)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Время на прохождение теста истекло");
         }
 
         List<Question> questions = questionRepository.findByTestOrderBySortOrderAsc(attempt.getTest());
@@ -286,6 +310,63 @@ public class TestService {
             attempt.getMaxScore(),
             grade,
             attempt.getStatus().name()
+        );
+    }
+
+    private TestAssignment resolveStudentAssignment(Long testId, AppUser student) {
+        List<GroupStudent> memberships = groupStudentRepository.findByStudent(student);
+        return memberships.stream()
+            .flatMap(gs -> testAssignmentRepository.findByGroupAndActiveTrue(gs.getGroup()).stream())
+            .filter(a -> a.getTest().getId().equals(testId))
+            .findFirst()
+            .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "Тест не назначен студенту"));
+    }
+
+    private void validateTestWindowOrThrow(LearningTest test, TestAssignment assignment) {
+        if (assignment.getDueAt() != null && OffsetDateTime.now().isAfter(assignment.getDueAt())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Срок выполнения теста истек");
+        }
+        if (test.getTimeLimitMin() == null || test.getTimeLimitMin() <= 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "У теста не настроен лимит времени");
+        }
+    }
+
+    private TestDtos.AttemptSessionItem toAttemptSession(TestAttempt attempt, TestAssignment assignment, boolean includeQuestions) {
+        OffsetDateTime timeLimitUntil = attempt.getStartedAt().plusMinutes(attempt.getTest().getTimeLimitMin());
+        OffsetDateTime availableUntil = assignment.getDueAt() == null
+            ? timeLimitUntil
+            : (assignment.getDueAt().isBefore(timeLimitUntil) ? assignment.getDueAt() : timeLimitUntil);
+        Integer grade = attempt.getStatus() == AttemptStatus.SUBMITTED
+            ? resolveGrade(attempt.getTest(), attempt.getScore())
+            : null;
+
+        List<TestDtos.AttemptQuestionItem> questions = List.of();
+        if (includeQuestions) {
+            questions = questionRepository.findByTestOrderBySortOrderAsc(attempt.getTest()).stream()
+                .map(question -> new TestDtos.AttemptQuestionItem(
+                    question.getId(),
+                    question.getText(),
+                    question.getPoints(),
+                    question.getSortOrder(),
+                    questionOptionRepository.findByQuestionOrderByIdAsc(question).stream()
+                        .map(option -> new TestDtos.AttemptOptionItem(option.getId(), option.getText()))
+                        .toList()
+                ))
+                .toList();
+        }
+
+        return new TestDtos.AttemptSessionItem(
+            attempt.getId(),
+            attempt.getTest().getId(),
+            attempt.getTest().getTitle(),
+            attempt.getTest().getTimeLimitMin(),
+            attempt.getStartedAt(),
+            availableUntil,
+            attempt.getStatus().name(),
+            attempt.getScore(),
+            attempt.getMaxScore(),
+            grade,
+            questions
         );
     }
 

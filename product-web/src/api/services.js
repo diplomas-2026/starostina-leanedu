@@ -30,6 +30,7 @@ export const testApi = {
   assign: (id, payload) => api.post(`/api/tests/${id}/assignments`, payload),
   removeAssignment: (id, assignmentId) => api.delete(`/api/tests/${id}/assignments/${assignmentId}`),
   startAttempt: (id) => api.post(`/api/tests/${id}/attempts/start`),
+  attemptSession: (attemptId) => api.get(`/api/tests/attempts/${attemptId}/session`),
   submitAttempt: (attemptId, payload) => api.post(`/api/tests/attempts/${attemptId}/submit`, payload),
   myAttempts: () => api.get('/api/tests/attempts/my'),
 };

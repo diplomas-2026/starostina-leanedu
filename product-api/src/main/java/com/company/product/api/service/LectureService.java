@@ -6,6 +6,7 @@ import com.company.product.api.entity.Lecture;
 import com.company.product.api.entity.Role;
 import com.company.product.api.entity.Subject;
 import com.company.product.api.repository.LectureRepository;
+import com.company.product.api.repository.LearningTestRepository;
 import com.company.product.api.repository.SubjectRepository;
 import com.company.product.api.repository.TeachingAssignmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LectureService {
     private final LectureRepository lectureRepository;
+    private final LearningTestRepository learningTestRepository;
     private final SubjectRepository subjectRepository;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
 
@@ -36,7 +38,7 @@ public class LectureService {
                 .filter(lecture -> lecture.getSubject() != null && lecture.getSubject().getId().equals(subjectId))
                 .toList();
         }
-        return lectures.stream().map(this::toItem).toList();
+        return lectures.stream().map(lecture -> toItem(lecture, user)).toList();
     }
 
     public LectureDtos.LectureItem getById(Long id, AppUser user) {
@@ -48,7 +50,7 @@ public class LectureService {
         if (user.getRole() == Role.TEACHER && (lecture.getCreatedBy() == null || !lecture.getCreatedBy().getId().equals(user.getId()))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав");
         }
-        return toItem(lecture);
+        return toItem(lecture, user);
     }
 
     public LectureDtos.LectureItem create(LectureDtos.LectureRequest request, AppUser user) {
@@ -62,7 +64,7 @@ public class LectureService {
         lecture.setCreatedBy(user);
         lecture.setCreatedAt(OffsetDateTime.now());
         lecture.setUpdatedAt(OffsetDateTime.now());
-        return toItem(lectureRepository.save(lecture));
+        return toItem(lectureRepository.save(lecture), user);
     }
 
     public LectureDtos.LectureItem update(Long id, LectureDtos.LectureRequest request, AppUser teacher) {
@@ -77,7 +79,7 @@ public class LectureService {
         lecture.setContent(request.content());
         lecture.setSubject(subject);
         lecture.setUpdatedAt(OffsetDateTime.now());
-        return toItem(lectureRepository.save(lecture));
+        return toItem(lectureRepository.save(lecture), teacher);
     }
 
     public LectureDtos.LectureItem publish(Long id, AppUser teacher) {
@@ -88,10 +90,19 @@ public class LectureService {
         }
         lecture.setPublished(true);
         lecture.setUpdatedAt(OffsetDateTime.now());
-        return toItem(lectureRepository.save(lecture));
+        return toItem(lectureRepository.save(lecture), teacher);
     }
 
-    private LectureDtos.LectureItem toItem(Lecture lecture) {
+    private LectureDtos.LectureItem toItem(Lecture lecture, AppUser currentUser) {
+        List<LectureDtos.LectureTestItem> tests = learningTestRepository.findByLectureId(lecture.getId()).stream()
+            .filter(test -> currentUser.getRole() != Role.STUDENT || test.isPublished())
+            .map(test -> new LectureDtos.LectureTestItem(
+                test.getId(),
+                test.getTitle(),
+                test.getDescription(),
+                test.isPublished()
+            ))
+            .toList();
         return new LectureDtos.LectureItem(
             lecture.getId(),
             lecture.getTitle(),
@@ -100,7 +111,8 @@ public class LectureService {
             lecture.isPublished(),
             lecture.getCreatedBy().getFullName(),
             lecture.getSubject() != null ? lecture.getSubject().getId() : null,
-            lecture.getSubject() != null ? lecture.getSubject().getName() : null
+            lecture.getSubject() != null ? lecture.getSubject().getName() : null,
+            tests
         );
     }
 

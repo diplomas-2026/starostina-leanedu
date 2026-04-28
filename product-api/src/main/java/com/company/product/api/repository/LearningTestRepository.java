@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface LearningTestRepository extends JpaRepository<LearningTest, Long> {
     List<LearningTest> findByPublishedTrue();
+    List<LearningTest> findByLectureId(Long lectureId);
 }

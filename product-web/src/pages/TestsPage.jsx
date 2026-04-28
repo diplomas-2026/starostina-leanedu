@@ -1,6 +1,6 @@
 import { Alert, Button, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import NavigationCard from '../components/NavigationCard';
@@ -10,10 +10,10 @@ import { publishStatusLabel } from '../utils/labels';
 export default function TestsPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -39,10 +39,9 @@ export default function TestsPage() {
 
   const startAttempt = async (testId) => {
     setError('');
-    setMessage('');
     try {
       const { data } = await testApi.startAttempt(testId);
-      setMessage(`Попытка создана: ${data.id}`);
+      navigate(`/tests/${testId}/take?attemptId=${data.attemptId}`);
     } catch (err) {
       setError(extractError(err, 'Не удалось начать тест'));
     }
@@ -61,8 +60,6 @@ export default function TestsPage() {
 
       {loading && <Loader color="teal" />}
       {error && <Alert color="red">{error}</Alert>}
-      {message && <Alert color="green">{message}</Alert>}
-
       {items.map((test) => (
         user?.role === 'STUDENT' ? (
           <Card key={test.id} withBorder radius="md" shadow="sm">

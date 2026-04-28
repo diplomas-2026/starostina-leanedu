@@ -61,9 +61,15 @@ public class TestController {
 
     @PostMapping("/{id}/attempts/start")
     @PreAuthorize("hasRole('STUDENT')")
-    public TestDtos.AttemptItem startAttempt(@PathVariable Long id) {
+    public TestDtos.AttemptSessionItem startAttempt(@PathVariable Long id) {
         AppUser student = currentUserService.requireCurrentUser();
         return testService.startAttempt(id, student);
+    }
+
+    @GetMapping("/attempts/{attemptId}/session")
+    @PreAuthorize("hasRole('STUDENT')")
+    public TestDtos.AttemptSessionItem getAttemptSession(@PathVariable Long attemptId) {
+        return testService.getAttemptSession(attemptId, currentUserService.requireCurrentUser());
     }
 
     @PostMapping("/attempts/{attemptId}/submit")

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { aiApi, lectureApi } from '../api/services';
 import AiLimitsCard from '../components/AiLimitsCard';
+import NavigationCard from '../components/NavigationCard';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
 import { publishStatusLabel } from '../utils/labels';
@@ -24,9 +25,14 @@ export default function LectureDetailsPage() {
     setLoading(true);
     setError('');
     try {
-      const [lectureResp, limitsResp] = await Promise.all([lectureApi.get(id), aiApi.limits()]);
+      const lectureResp = await lectureApi.get(id);
       setLecture(lectureResp.data);
-      setLimits(limitsResp.data);
+      if (user?.role === 'TEACHER') {
+        const limitsResp = await aiApi.limits();
+        setLimits(limitsResp.data);
+      } else {
+        setLimits(null);
+      }
     } catch (err) {
       setError(extractError(err, 'Не удалось загрузить лекцию'));
     } finally {
@@ -36,7 +42,7 @@ export default function LectureDetailsPage() {
 
   useEffect(() => {
     loadData();
-  }, [id]);
+  }, [id, user?.role]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -45,6 +51,7 @@ export default function LectureDetailsPage() {
     setGeneratedTestId(null);
     if (!teacherPrompt.trim()) {
       setError('Введите требования к генерации для LLM');
+      setGenerating(false);
       return;
     }
     try {
@@ -101,7 +108,7 @@ export default function LectureDetailsPage() {
         )}
       </Group>
 
-      <AiLimitsCard limits={limits} />
+      {user?.role === 'TEACHER' && <AiLimitsCard limits={limits} />}
       {user?.role === 'TEACHER' && (
         <Stack>
           <Alert color="blue">
@@ -124,6 +131,23 @@ export default function LectureDetailsPage() {
           Открыть сгенерированный тест
         </Button>
       )}
+
+      <Stack>
+        <Title order={4}>Тесты по этой лекции</Title>
+        {lecture?.tests?.length ? (
+          lecture.tests.map((test) => (
+            <NavigationCard
+              key={test.id}
+              to={user?.role === 'STUDENT' ? `/tests/${test.id}/take` : `/tests/${test.id}`}
+              title={test.title}
+              subtitle={test.description}
+              meta={publishStatusLabel(test.published)}
+            />
+          ))
+        ) : (
+          <Alert color="yellow">Для этой лекции пока нет тестов.</Alert>
+        )}
+      </Stack>
 
       <div
         className="lecture-view-content"

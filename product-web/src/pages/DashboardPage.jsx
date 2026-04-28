@@ -1,6 +1,6 @@
 import { Alert, Card, Grid, Group, Loader, Progress, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { teacherApi } from '../api/services';
+import { lectureApi, teacherApi, testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
 import { roleLabel } from '../utils/labels';
@@ -8,21 +8,43 @@ import { roleLabel } from '../utils/labels';
 export default function DashboardPage() {
   const { user } = useAuth();
   const [summary, setSummary] = useState(null);
+  const [studentSummary, setStudentSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user?.role !== 'TEACHER') {
-      return;
-    }
     const loadSummary = async () => {
       setLoading(true);
       setError('');
       try {
-        const { data } = await teacherApi.dashboardSummary();
-        setSummary(data);
+        if (user?.role === 'TEACHER') {
+          const { data } = await teacherApi.dashboardSummary();
+          setSummary(data);
+          setStudentSummary(null);
+        } else if (user?.role === 'STUDENT') {
+          const [{ data: attempts }, { data: tests }, { data: lectures }] = await Promise.all([
+            testApi.myAttempts(),
+            testApi.list(),
+            lectureApi.list(),
+          ]);
+          const completed = attempts.filter((attempt) => attempt.status === 'SUBMITTED');
+          const avgGrade = completed.length
+            ? (completed.reduce((sum, attempt) => sum + (attempt.grade || 0), 0) / completed.length).toFixed(2)
+            : null;
+          setStudentSummary({
+            testsAvailable: tests.length,
+            lecturesAvailable: lectures.length,
+            attemptsTotal: attempts.length,
+            completedTotal: completed.length,
+            avgGrade,
+          });
+          setSummary(null);
+        } else {
+          setSummary(null);
+          setStudentSummary(null);
+        }
       } catch (err) {
-        setError(extractError(err, 'Не удалось загрузить статистику преподавателя'));
+        setError(extractError(err, 'Не удалось загрузить данные дашборда'));
       } finally {
         setLoading(false);
       }
@@ -34,6 +56,8 @@ export default function DashboardPage() {
     <Stack>
       <Title order={2}>Добро пожаловать, {user?.fullName}</Title>
       <Text c="dimmed">Платформа обучения по дисциплине «Основы бережливого производства».</Text>
+      {loading && <Loader color="teal" />}
+      {error && <Alert color="red">{error}</Alert>}
 
       {user?.role !== 'TEACHER' && (
         <Card withBorder>
@@ -44,11 +68,47 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      {user?.role === 'STUDENT' && studentSummary && (
+        <Grid>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Card withBorder>
+              <Text size="sm" c="dimmed">Доступно лекций</Text>
+              <Text fw={700} size="xl">{studentSummary.lecturesAvailable}</Text>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Card withBorder>
+              <Text size="sm" c="dimmed">Доступно тестов</Text>
+              <Text fw={700} size="xl">{studentSummary.testsAvailable}</Text>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Card withBorder>
+              <Text size="sm" c="dimmed">Средняя оценка</Text>
+              <Text fw={700} size="xl">{studentSummary.avgGrade || '—'}</Text>
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 12 }}>
+            <Card withBorder>
+              <Group justify="space-between">
+                <Text fw={600}>Прогресс по тестам</Text>
+                <Text c="dimmed">
+                  Завершено: {studentSummary.completedTotal} из {studentSummary.attemptsTotal}
+                </Text>
+              </Group>
+              <Progress
+                mt="sm"
+                value={studentSummary.attemptsTotal > 0 ? (studentSummary.completedTotal / studentSummary.attemptsTotal) * 100 : 0}
+                color="teal"
+                size="lg"
+              />
+            </Card>
+          </Grid.Col>
+        </Grid>
+      )}
+
       {user?.role === 'TEACHER' && (
         <>
-          {loading && <Loader color="teal" />}
-          {error && <Alert color="red">{error}</Alert>}
-
           {summary && (
             <>
               <Alert color="blue">

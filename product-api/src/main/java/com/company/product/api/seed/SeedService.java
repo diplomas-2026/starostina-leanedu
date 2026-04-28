@@ -25,6 +25,8 @@ public class SeedService {
     private final AppUserRepository appUserRepository;
     private final GroupRepository groupRepository;
     private final GroupStudentRepository groupStudentRepository;
+    private final SubjectRepository subjectRepository;
+    private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final LectureRepository lectureRepository;
     private final LearningTestRepository learningTestRepository;
     private final QuestionRepository questionRepository;
@@ -57,19 +59,27 @@ public class SeedService {
         addStudentToGroup(firstGroup, student1);
         addStudentToGroup(firstGroup, student2);
 
+        Subject leanSubject = upsertSubject("LEAN-101", "Основы бережливого производства");
+        upsertTeachingAssignment(firstGroup, leanSubject, teacher);
+
         List<SeedModels.SeedLecture> lectures = readJsonList("seed-data/lectures.json", new TypeReference<>() {});
         for (SeedModels.SeedLecture l : lectures) {
-            if (lectureRepository.findAll().stream().noneMatch(existing -> existing.getTitle().equalsIgnoreCase(l.title()))) {
-                Lecture lecture = new Lecture();
+            Lecture lecture = lectureRepository.findAll().stream()
+                .filter(existing -> existing.getTitle().equalsIgnoreCase(l.title()))
+                .findFirst()
+                .orElseGet(Lecture::new);
+
+            if (lecture.getId() == null) {
                 lecture.setTitle(l.title());
                 lecture.setSummary(l.summary());
                 lecture.setContent(l.content());
                 lecture.setPublished(true);
                 lecture.setCreatedBy(teacher);
                 lecture.setCreatedAt(OffsetDateTime.now().minusDays(2));
-                lecture.setUpdatedAt(OffsetDateTime.now().minusDays(1));
-                lectureRepository.save(lecture);
             }
+            lecture.setSubject(leanSubject);
+            lecture.setUpdatedAt(OffsetDateTime.now().minusDays(1));
+            lectureRepository.save(lecture);
         }
 
         if (learningTestRepository.count() == 0) {
@@ -78,6 +88,7 @@ public class SeedService {
             test.setTitle("Базовый тест по бережливому производству");
             test.setDescription("Проверка базовых знаний по потерям и инструментам");
             test.setLecture(lecture);
+            test.setSubject(leanSubject);
             test.setPublished(true);
             test.setTimeLimitMin(20);
             test.setAttemptsLimit(3);
@@ -117,6 +128,13 @@ public class SeedService {
             assignment.setDueAt(OffsetDateTime.now().plusDays(14));
             assignment.setActive(true);
             testAssignmentRepository.save(assignment);
+        } else {
+            learningTestRepository.findAll().forEach(test -> {
+                if (test.getSubject() == null) {
+                    test.setSubject(leanSubject);
+                    learningTestRepository.save(test);
+                }
+            });
         }
 
         writeUsersFile(List.of(admin, teacher, student1, student2));
@@ -138,6 +156,23 @@ public class SeedService {
             gs.setGroup(group);
             gs.setStudent(student);
             groupStudentRepository.save(gs);
+        }
+    }
+
+    private Subject upsertSubject(String code, String name) {
+        Subject subject = subjectRepository.findByCodeIgnoreCase(code).orElseGet(Subject::new);
+        subject.setCode(code);
+        subject.setName(name);
+        return subjectRepository.save(subject);
+    }
+
+    private void upsertTeachingAssignment(GroupEntity group, Subject subject, AppUser teacher) {
+        if (!teachingAssignmentRepository.existsByTeacherAndGroupAndSubject(teacher, group, subject)) {
+            TeachingAssignment assignment = new TeachingAssignment();
+            assignment.setGroup(group);
+            assignment.setSubject(subject);
+            assignment.setTeacher(teacher);
+            teachingAssignmentRepository.save(assignment);
         }
     }
 

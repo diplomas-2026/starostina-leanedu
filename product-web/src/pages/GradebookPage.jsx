@@ -6,8 +6,11 @@ import { extractError } from '../utils/errors';
 export default function GradebookPage() {
   const [groups, setGroups] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [matrix, setMatrix] = useState(null);
   const [loadingGroups, setLoadingGroups] = useState(true);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [loadingMatrix, setLoadingMatrix] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,6 +39,34 @@ export default function GradebookPage() {
 
   useEffect(() => {
     if (!selectedGroupId) {
+      setSubjects([]);
+      setSelectedSubjectId('');
+      setMatrix(null);
+      return;
+    }
+
+    const loadSubjects = async () => {
+      setLoadingSubjects(true);
+      setError('');
+      try {
+        const { data } = await gradebookApi.subjects(selectedGroupId);
+        const options = data.map((subject) => ({
+          value: String(subject.id),
+          label: `${subject.code} — ${subject.name}`,
+        }));
+        setSubjects(options);
+        setSelectedSubjectId(options[0]?.value || '');
+      } catch (err) {
+        setError(extractError(err, 'Не удалось загрузить список предметов'));
+      } finally {
+        setLoadingSubjects(false);
+      }
+    };
+    loadSubjects();
+  }, [selectedGroupId]);
+
+  useEffect(() => {
+    if (!selectedGroupId || !selectedSubjectId) {
       setMatrix(null);
       return;
     }
@@ -44,16 +75,16 @@ export default function GradebookPage() {
       setLoadingMatrix(true);
       setError('');
       try {
-        const { data } = await gradebookApi.matrix(selectedGroupId);
+        const { data } = await gradebookApi.matrix(selectedGroupId, selectedSubjectId);
         setMatrix(data);
       } catch (err) {
-        setError(extractError(err, 'Не удалось загрузить журнал группы'));
+        setError(extractError(err, 'Не удалось загрузить журнал группы и предмета'));
       } finally {
         setLoadingMatrix(false);
       }
     };
     loadMatrix();
-  }, [selectedGroupId]);
+  }, [selectedGroupId, selectedSubjectId]);
 
   const formatDueAt = (value) => {
     if (!value) return 'Без дедлайна';
@@ -72,19 +103,35 @@ export default function GradebookPage() {
       {error && <Alert color="red">{error}</Alert>}
 
       <Card withBorder>
-        {loadingGroups ? (
-          <Loader color="teal" />
-        ) : (
-          <Select
-            label="Группа"
-            placeholder="Выберите группу"
-            value={selectedGroupId}
-            data={groups}
-            onChange={(value) => setSelectedGroupId(value || '')}
-            nothingFoundMessage="Группы не найдены"
-            searchable
-          />
-        )}
+        <Stack>
+          {loadingGroups ? (
+            <Loader color="teal" />
+          ) : (
+            <Select
+              label="Группа"
+              placeholder="Выберите группу"
+              value={selectedGroupId}
+              data={groups}
+              onChange={(value) => setSelectedGroupId(value || '')}
+              nothingFoundMessage="Группы не найдены"
+              searchable
+            />
+          )}
+          {loadingSubjects ? (
+            <Loader color="teal" />
+          ) : (
+            <Select
+              label="Предмет"
+              placeholder="Выберите предмет"
+              value={selectedSubjectId}
+              data={subjects}
+              onChange={(value) => setSelectedSubjectId(value || '')}
+              nothingFoundMessage="Предметы не найдены"
+              searchable
+              disabled={!selectedGroupId}
+            />
+          )}
+        </Stack>
       </Card>
 
       <Card withBorder>
@@ -92,7 +139,7 @@ export default function GradebookPage() {
         {!loadingMatrix && matrix && (
           <Stack gap="md">
             <Text c="dimmed">
-              Группа: {matrix.groupCode} — {matrix.groupName}
+              Группа: {matrix.groupCode} — {matrix.groupName} · Предмет: {matrix.subjectCode} — {matrix.subjectName}
             </Text>
 
             {matrix.columns.length === 0 ? (

@@ -1,6 +1,7 @@
 package com.company.product.api.controller;
 
 import com.company.product.api.dto.UserManagementDtos;
+import com.company.product.api.service.CurrentUserService;
 import com.company.product.api.service.UserManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import java.util.List;
 @PreAuthorize("hasRole('TEACHER')")
 public class TeacherController {
     private final UserManagementService userManagementService;
+    private final CurrentUserService currentUserService;
 
     @PostMapping("/students")
     public UserManagementDtos.UserItem createStudent(@Valid @RequestBody UserManagementDtos.CreateStudentRequest request) {
@@ -29,6 +31,11 @@ public class TeacherController {
     @GetMapping("/groups")
     public List<UserManagementDtos.GroupItem> listGroups() {
         return userManagementService.listGroups();
+    }
+
+    @GetMapping("/subjects")
+    public List<UserManagementDtos.SubjectItem> listSubjects(@RequestParam(required = false) Long groupId) {
+        return userManagementService.listSubjectsForTeacher(currentUserService.requireCurrentUser(), groupId);
     }
 
     @PostMapping("/groups/{groupId}/students/{studentId}")

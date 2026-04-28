@@ -1,7 +1,7 @@
-import { Alert, Button, Card, Group, Loader, NumberInput, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Card, Group, Loader, NumberInput, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { testApi } from '../api/services';
+import { teacherApi, testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
 import { publishStatusLabel } from '../utils/labels';
@@ -11,12 +11,14 @@ export default function TestsPage() {
   const [createForm, setCreateForm] = useState({
     title: '',
     description: '',
+    subjectId: '',
     timeLimitMin: 20,
     attemptsLimit: 3,
     minScore3: 5,
     minScore4: 7,
     minScore5: 9,
   });
+  const [subjectOptions, setSubjectOptions] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,6 +41,28 @@ export default function TestsPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (user?.role !== 'TEACHER') {
+      return;
+    }
+    const loadSubjects = async () => {
+      try {
+        const { data } = await teacherApi.subjects();
+        const options = data.map((subject) => ({
+          value: String(subject.id),
+          label: `${subject.code} — ${subject.name}`,
+        }));
+        setSubjectOptions(options);
+        if (options.length > 0) {
+          setCreateForm((prev) => ({ ...prev, subjectId: prev.subjectId || options[0].value }));
+        }
+      } catch (err) {
+        setError(extractError(err, 'Не удалось загрузить список предметов'));
+      }
+    };
+    loadSubjects();
+  }, [user?.role]);
+
   const startAttempt = async (testId) => {
     setError('');
     setMessage('');
@@ -54,12 +78,20 @@ export default function TestsPage() {
     e.preventDefault();
     setError('');
     setMessage('');
+    if (!createForm.subjectId) {
+      setError('Выберите предмет для теста');
+      return;
+    }
     try {
-      await testApi.create(createForm);
+      await testApi.create({
+        ...createForm,
+        subjectId: Number(createForm.subjectId),
+      });
       setMessage('Тест создан');
       setCreateForm({
         title: '',
         description: '',
+        subjectId: subjectOptions[0]?.value || '',
         timeLimitMin: 20,
         attemptsLimit: 3,
         minScore3: 5,
@@ -94,6 +126,16 @@ export default function TestsPage() {
                 label="Описание"
                 value={createForm.description}
                 onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                required
+              />
+              <Select
+                label="Предмет"
+                placeholder="Выберите предмет"
+                data={subjectOptions}
+                value={createForm.subjectId}
+                onChange={(value) => setCreateForm({ ...createForm, subjectId: value || '' })}
+                nothingFoundMessage="Предметы не найдены"
+                searchable
                 required
               />
               <Group grow>
@@ -151,6 +193,7 @@ export default function TestsPage() {
               <Text size="sm" c="dimmed">{test.description}</Text>
               {user?.role !== 'STUDENT' && (
                 <Text size="xs" c="dimmed">
+                  Предмет: {test.subjectName || 'Не указан'} ·{' '}
                   Пороги: 3 от {test.minScore3}, 4 от {test.minScore4}, 5 от {test.minScore5}
                 </Text>
               )}

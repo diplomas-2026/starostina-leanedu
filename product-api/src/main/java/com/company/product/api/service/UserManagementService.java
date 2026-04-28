@@ -5,9 +5,12 @@ import com.company.product.api.entity.AppUser;
 import com.company.product.api.entity.GroupEntity;
 import com.company.product.api.entity.GroupStudent;
 import com.company.product.api.entity.Role;
+import com.company.product.api.entity.Subject;
+import com.company.product.api.entity.TeachingAssignment;
 import com.company.product.api.repository.AppUserRepository;
 import com.company.product.api.repository.GroupRepository;
 import com.company.product.api.repository.GroupStudentRepository;
+import com.company.product.api.repository.TeachingAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +24,7 @@ public class UserManagementService {
     private final AppUserRepository appUserRepository;
     private final GroupRepository groupRepository;
     private final GroupStudentRepository groupStudentRepository;
+    private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserManagementDtos.UserItem createTeacher(UserManagementDtos.CreateTeacherRequest request) {
@@ -67,6 +71,28 @@ public class UserManagementService {
             .toList();
     }
 
+    public List<UserManagementDtos.SubjectItem> listSubjectsForTeacher(AppUser teacher, Long groupId) {
+        List<TeachingAssignment> assignments;
+        if (groupId == null) {
+            assignments = teachingAssignmentRepository.findByTeacher(teacher);
+        } else {
+            GroupEntity group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+            assignments = teachingAssignmentRepository.findByTeacherAndGroup(teacher, group);
+        }
+
+        return assignments.stream()
+            .map(TeachingAssignment::getSubject)
+            .distinct()
+            .sorted((a, b) -> {
+                String left = a.getCode() == null ? "" : a.getCode().toLowerCase();
+                String right = b.getCode() == null ? "" : b.getCode().toLowerCase();
+                return left.compareTo(right);
+            })
+            .map(this::toSubjectItem)
+            .toList();
+    }
+
     private UserManagementDtos.UserItem createUser(String email, String fullName, String password, Role role) {
         if (appUserRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "Пользователь с таким email уже существует");
@@ -82,5 +108,9 @@ public class UserManagementService {
 
     private UserManagementDtos.UserItem toItem(AppUser user) {
         return new UserManagementDtos.UserItem(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.isActive());
+    }
+
+    private UserManagementDtos.SubjectItem toSubjectItem(Subject subject) {
+        return new UserManagementDtos.SubjectItem(subject.getId(), subject.getCode(), subject.getName());
     }
 }

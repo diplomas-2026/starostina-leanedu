@@ -23,6 +23,10 @@ public class LearningTest {
     @JoinColumn(name = "lecture_id")
     private Lecture lecture;
 
+    @ManyToOne
+    @JoinColumn(name = "subject_id")
+    private Subject subject;
+
     @Column(nullable = false)
     private boolean published;
 

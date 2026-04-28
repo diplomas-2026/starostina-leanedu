@@ -28,6 +28,7 @@ export const teacherApi = {
   createStudent: (payload) => api.post('/api/teacher/students', payload),
   students: () => api.get('/api/teacher/students'),
   groups: () => api.get('/api/teacher/groups'),
+  subjects: (groupId) => api.get('/api/teacher/subjects', { params: groupId ? { groupId } : {} }),
   addStudentToGroup: (groupId, studentId) => api.post(`/api/teacher/groups/${groupId}/students/${studentId}`),
 };
 
@@ -44,5 +45,6 @@ export const aiApi = {
 export const gradebookApi = {
   all: () => api.get('/api/gradebook'),
   groups: () => api.get('/api/gradebook/groups'),
-  matrix: (groupId) => api.get('/api/gradebook/matrix', { params: { groupId } }),
+  subjects: (groupId) => api.get('/api/gradebook/subjects', { params: { groupId } }),
+  matrix: (groupId, subjectId) => api.get('/api/gradebook/matrix', { params: { groupId, subjectId } }),
 };

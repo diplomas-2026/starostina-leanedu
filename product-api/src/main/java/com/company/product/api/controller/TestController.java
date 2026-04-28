@@ -50,7 +50,7 @@ public class TestController {
     @PostMapping("/{id}/assignments")
     @PreAuthorize("hasRole('TEACHER')")
     public void assign(@PathVariable Long id, @Valid @RequestBody TestDtos.AssignTestRequest request) {
-        testService.assignTest(id, request);
+        testService.assignTest(id, request, currentUserService.requireCurrentUser());
     }
 
     @PostMapping("/{id}/attempts/start")

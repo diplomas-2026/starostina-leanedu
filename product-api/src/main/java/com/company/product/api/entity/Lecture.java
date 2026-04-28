@@ -27,6 +27,10 @@ public class Lecture {
     @Column(nullable = false)
     private boolean published;
 
+    @ManyToOne
+    @JoinColumn(name = "subject_id")
+    private Subject subject;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "created_by")
     private AppUser createdBy;

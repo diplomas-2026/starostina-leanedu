@@ -108,6 +108,7 @@ public class AiService {
         test.setTitle((String) parsed.getOrDefault("title", "AI тест по лекции"));
         test.setDescription((String) parsed.getOrDefault("description", "Черновик, сгенерированный LLM"));
         test.setLecture(lecture);
+        test.setSubject(lecture.getSubject());
         test.setPublished(false);
         test.setTimeLimitMin(20);
         test.setAttemptsLimit(3);

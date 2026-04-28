@@ -13,6 +13,7 @@ public class TestDtos {
         @NotBlank String title,
         @NotBlank String description,
         Long lectureId,
+        @NotNull Long subjectId,
         @NotNull @Min(1) Integer timeLimitMin,
         @NotNull @Min(1) Integer attemptsLimit,
         @NotNull @Min(0) Integer minScore3,
@@ -29,6 +30,8 @@ public class TestDtos {
         String title,
         String description,
         boolean published,
+        Long subjectId,
+        String subjectName,
         Integer minScore3,
         Integer minScore4,
         Integer minScore5
@@ -36,10 +39,20 @@ public class TestDtos {
     public record AttemptItem(Long id, Long testId, String testTitle, Integer score, Integer maxScore, Integer grade, String status) {}
     public record GradebookItem(Long attemptId, String studentName, String testTitle, Integer score, Integer maxScore) {}
     public record GradebookGroupOption(Long id, String code, String name) {}
+    public record GradebookSubjectOption(Long id, String code, String name) {}
     public record GradebookColumn(Long assignmentId, String testTitle, OffsetDateTime dueAt) {}
     public record GradebookCell(String status, Integer score, Integer maxScore, Integer grade) {}
     public record GradebookRow(Long studentId, String studentName, List<GradebookCell> cells) {}
-    public record GradebookMatrix(Long groupId, String groupCode, String groupName, List<GradebookColumn> columns, List<GradebookRow> rows) {}
+    public record GradebookMatrix(
+        Long groupId,
+        String groupCode,
+        String groupName,
+        Long subjectId,
+        String subjectCode,
+        String subjectName,
+        List<GradebookColumn> columns,
+        List<GradebookRow> rows
+    ) {}
     public record TestOptionItem(Long id, String text, boolean correct) {}
     public record TestQuestionItem(Long id, String text, Integer points, Integer sortOrder, List<TestOptionItem> options) {}
     public record TestDetailsItem(
@@ -47,6 +60,8 @@ public class TestDtos {
         String title,
         String description,
         boolean published,
+        Long subjectId,
+        String subjectName,
         Integer timeLimitMin,
         Integer attemptsLimit,
         Integer minScore3,

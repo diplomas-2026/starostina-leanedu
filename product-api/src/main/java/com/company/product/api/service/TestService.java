@@ -19,6 +19,7 @@ import java.util.Map;
 public class TestService {
     private final LearningTestRepository learningTestRepository;
     private final LectureRepository lectureRepository;
+    private final SubjectRepository subjectRepository;
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
     private final GroupRepository groupRepository;
@@ -26,14 +27,23 @@ public class TestService {
     private final GroupStudentRepository groupStudentRepository;
     private final TestAttemptRepository testAttemptRepository;
     private final AttemptAnswerRepository attemptAnswerRepository;
+    private final TeachingAssignmentRepository teachingAssignmentRepository;
 
     public TestDtos.TestItem createTest(TestDtos.CreateTestRequest request, AppUser teacher) {
         validateThresholds(request.minScore3(), request.minScore4(), request.minScore5());
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Предмет не найден"));
+        boolean hasSubject = teachingAssignmentRepository.findByTeacher(teacher).stream()
+            .anyMatch(ta -> ta.getSubject().getId().equals(subject.getId()));
+        if (!hasSubject) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на выбранный предмет");
+        }
 
         LearningTest test = new LearningTest();
         test.setTitle(request.title());
         test.setDescription(request.description());
         test.setPublished(false);
+        test.setSubject(subject);
         test.setTimeLimitMin(request.timeLimitMin());
         test.setAttemptsLimit(request.attemptsLimit());
         test.setMinScore3(request.minScore3());
@@ -73,6 +83,8 @@ public class TestService {
             test.getTitle(),
             test.getDescription(),
             test.isPublished(),
+            test.getSubject() != null ? test.getSubject().getId() : null,
+            test.getSubject() != null ? test.getSubject().getName() : null,
             test.getTimeLimitMin(),
             test.getAttemptsLimit(),
             test.getMinScore3(),
@@ -106,10 +118,16 @@ public class TestService {
         }
     }
 
-    public void assignTest(Long testId, TestDtos.AssignTestRequest request) {
+    public void assignTest(Long testId, TestDtos.AssignTestRequest request, AppUser teacher) {
         LearningTest test = getTestOrThrow(testId);
         GroupEntity group = groupRepository.findById(request.groupId())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+        if (test.getSubject() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "У теста не указан предмет");
+        }
+        if (!teachingAssignmentRepository.existsByTeacherAndGroupAndSubject(teacher, group, test.getSubject())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на этот предмет в выбранной группе");
+        }
 
         TestAssignment assignment = new TestAssignment();
         assignment.setTest(test);
@@ -226,16 +244,53 @@ public class TestService {
             .toList();
     }
 
-    public List<TestDtos.GradebookGroupOption> listGradebookGroups() {
-        return groupRepository.findAll().stream()
+    public List<TestDtos.GradebookGroupOption> listGradebookGroups(AppUser user) {
+        if (user.getRole() == Role.ADMIN) {
+            return groupRepository.findAll().stream()
+                .sorted(Comparator.comparing(GroupEntity::getCode, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .map(group -> new TestDtos.GradebookGroupOption(group.getId(), group.getCode(), group.getName()))
+                .toList();
+        }
+
+        return teachingAssignmentRepository.findByTeacher(user).stream()
+            .map(TeachingAssignment::getGroup)
+            .distinct()
             .sorted(Comparator.comparing(GroupEntity::getCode, Comparator.nullsLast(String::compareToIgnoreCase)))
             .map(group -> new TestDtos.GradebookGroupOption(group.getId(), group.getCode(), group.getName()))
             .toList();
     }
 
-    public TestDtos.GradebookMatrix getGradebookMatrix(Long groupId) {
+    public List<TestDtos.GradebookSubjectOption> listGradebookSubjects(Long groupId, AppUser user) {
         GroupEntity group = groupRepository.findById(groupId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+
+        if (user.getRole() == Role.ADMIN) {
+            return teachingAssignmentRepository.findAll().stream()
+                .filter(ta -> ta.getGroup().getId().equals(group.getId()))
+                .map(TeachingAssignment::getSubject)
+                .distinct()
+                .sorted(Comparator.comparing(Subject::getCode, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .map(subject -> new TestDtos.GradebookSubjectOption(subject.getId(), subject.getCode(), subject.getName()))
+                .toList();
+        }
+
+        return teachingAssignmentRepository.findByTeacherAndGroup(user, group).stream()
+            .map(TeachingAssignment::getSubject)
+            .distinct()
+            .sorted(Comparator.comparing(Subject::getCode, Comparator.nullsLast(String::compareToIgnoreCase)))
+            .map(subject -> new TestDtos.GradebookSubjectOption(subject.getId(), subject.getCode(), subject.getName()))
+            .toList();
+    }
+
+    public TestDtos.GradebookMatrix getGradebookMatrix(Long groupId, Long subjectId, AppUser user) {
+        GroupEntity group = groupRepository.findById(groupId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+        Subject subject = subjectRepository.findById(subjectId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Предмет не найден"));
+
+        if (user.getRole() == Role.TEACHER && !teachingAssignmentRepository.existsByTeacherAndGroupAndSubject(user, group, subject)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "У преподавателя нет назначения на эту группу и предмет");
+        }
 
         List<GroupStudent> memberships = groupStudentRepository.findByGroup(group);
         List<AppUser> students = memberships.stream()
@@ -244,7 +299,7 @@ public class TestService {
             .sorted(Comparator.comparing(AppUser::getFullName, String::compareToIgnoreCase))
             .toList();
 
-        List<TestAssignment> assignments = testAssignmentRepository.findByGroupAndActiveTrueOrderByDueAtAsc(group);
+        List<TestAssignment> assignments = testAssignmentRepository.findByGroupAndTestSubjectAndActiveTrueOrderByDueAtAsc(group, subject);
         List<LearningTest> tests = assignments.stream()
             .map(TestAssignment::getTest)
             .distinct()
@@ -299,7 +354,16 @@ public class TestService {
             ))
             .toList();
 
-        return new TestDtos.GradebookMatrix(group.getId(), group.getCode(), group.getName(), columns, rows);
+        return new TestDtos.GradebookMatrix(
+            group.getId(),
+            group.getCode(),
+            group.getName(),
+            subject.getId(),
+            subject.getCode(),
+            subject.getName(),
+            columns,
+            rows
+        );
     }
 
     private String buildStudentTestKey(Long studentId, Long testId) {
@@ -336,6 +400,8 @@ public class TestService {
             test.getTitle(),
             test.getDescription(),
             test.isPublished(),
+            test.getSubject() != null ? test.getSubject().getId() : null,
+            test.getSubject() != null ? test.getSubject().getName() : null,
             test.getMinScore3(),
             test.getMinScore4(),
             test.getMinScore5()

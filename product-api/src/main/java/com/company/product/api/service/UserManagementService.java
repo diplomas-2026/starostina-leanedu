@@ -9,6 +9,7 @@ import com.company.product.api.entity.GroupStudent;
 import com.company.product.api.entity.Role;
 import com.company.product.api.entity.Subject;
 import com.company.product.api.entity.TeachingAssignment;
+import com.company.product.api.entity.TestAssignment;
 import com.company.product.api.entity.AttemptStatus;
 import com.company.product.api.entity.TestAttempt;
 import com.company.product.api.repository.AppUserRepository;
@@ -25,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -350,6 +352,80 @@ public class UserManagementService {
             group.getCode(),
             group.getName(),
             lectureItems
+        );
+    }
+
+    public UserManagementDtos.StudentGradebookMatrix getStudentGradebook(AppUser student) {
+        GroupEntity group = requireStudentGroup(student);
+
+        List<TeachingAssignment> groupAssignments = teachingAssignmentRepository.findByGroup(group);
+        List<Subject> subjects = groupAssignments.stream()
+            .map(TeachingAssignment::getSubject)
+            .distinct()
+            .sorted(Comparator.comparing(Subject::getCode, Comparator.nullsLast(String::compareToIgnoreCase)))
+            .toList();
+
+        List<TestAssignment> testAssignments = testAssignmentRepository.findByGroupAndActiveTrueOrderByDueAtAsc(group).stream()
+            .filter(assignment -> assignment.getTest() != null && assignment.getTest().isPublished())
+            .toList();
+
+        List<UserManagementDtos.StudentGradebookColumn> columns = testAssignments.stream()
+            .map(assignment -> new UserManagementDtos.StudentGradebookColumn(
+                assignment.getId(),
+                assignment.getTest().getId(),
+                assignment.getTest().getTitle(),
+                assignment.getTest().getSubject() != null ? assignment.getTest().getSubject().getCode() : null,
+                assignment.getTest().getSubject() != null ? assignment.getTest().getSubject().getName() : null,
+                assignment.getDueAt() != null ? assignment.getDueAt().toString() : null
+            ))
+            .toList();
+
+        List<UserManagementDtos.StudentGradebookRow> rows = subjects.stream()
+            .map(subject -> new UserManagementDtos.StudentGradebookRow(
+                subject.getId(),
+                subject.getCode(),
+                subject.getName(),
+                testAssignments.stream().map(assignment -> {
+                    if (assignment.getTest().getSubject() == null || !assignment.getTest().getSubject().getId().equals(subject.getId())) {
+                        return new UserManagementDtos.StudentGradebookCell("—", null, null, null);
+                    }
+
+                    TestAttempt latestAttempt = testAttemptRepository.findByStudentAndTestOrderByStartedAtDesc(student, assignment.getTest()).stream()
+                        .findFirst()
+                        .orElse(null);
+                    if (latestAttempt == null) {
+                        if (assignment.getDueAt() != null && OffsetDateTime.now().isAfter(assignment.getDueAt())) {
+                            return new UserManagementDtos.StudentGradebookCell("Не выполнен", null, null, null);
+                        }
+                        return new UserManagementDtos.StudentGradebookCell("Не приступал", null, null, null);
+                    }
+                    if (latestAttempt.getStatus() == AttemptStatus.IN_PROGRESS) {
+                        return new UserManagementDtos.StudentGradebookCell("В процессе", null, null, null);
+                    }
+                    int grade = resolveGrade(
+                        assignment.getTest().getMinScore3(),
+                        assignment.getTest().getMinScore4(),
+                        assignment.getTest().getMinScore5(),
+                        latestAttempt.getScore()
+                    );
+                    return new UserManagementDtos.StudentGradebookCell(
+                        "Оценено",
+                        latestAttempt.getScore(),
+                        latestAttempt.getMaxScore(),
+                        grade
+                    );
+                }).toList()
+            ))
+            .toList();
+
+        return new UserManagementDtos.StudentGradebookMatrix(
+            student.getId(),
+            student.getFullName(),
+            group.getId(),
+            group.getCode(),
+            group.getName(),
+            columns,
+            rows
         );
     }
 

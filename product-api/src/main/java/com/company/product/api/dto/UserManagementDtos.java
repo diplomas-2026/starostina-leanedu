@@ -65,6 +65,18 @@ public class UserManagementDtos {
         String groupName,
         List<StudentLectureProgressItem> lectures
     ) {}
+    public record StudentGradebookColumn(Long assignmentId, Long testId, String testTitle, String subjectCode, String subjectName, String dueAt) {}
+    public record StudentGradebookCell(String status, Integer score, Integer maxScore, Integer grade) {}
+    public record StudentGradebookRow(Long subjectId, String subjectCode, String subjectName, List<StudentGradebookCell> cells) {}
+    public record StudentGradebookMatrix(
+        Long studentId,
+        String studentName,
+        Long groupId,
+        String groupCode,
+        String groupName,
+        List<StudentGradebookColumn> columns,
+        List<StudentGradebookRow> rows
+    ) {}
     public record GroupDisciplineItem(Long subjectId, String subjectCode, String subjectName, Long teacherId, String teacherName) {}
     public record GroupSummary(
         Long groupId,

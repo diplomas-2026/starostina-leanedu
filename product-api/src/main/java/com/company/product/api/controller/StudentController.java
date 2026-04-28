@@ -34,4 +34,10 @@ public class StudentController {
     public UserManagementDtos.StudentDisciplineDetails myDisciplineDetails(@PathVariable Long subjectId) {
         return userManagementService.getStudentDisciplineDetails(currentUserService.requireCurrentUser(), subjectId);
     }
+
+    @GetMapping("/me/gradebook")
+    @PreAuthorize("hasRole('STUDENT')")
+    public UserManagementDtos.StudentGradebookMatrix myGradebook() {
+        return userManagementService.getStudentGradebook(currentUserService.requireCurrentUser());
+    }
 }

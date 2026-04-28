@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface TeachingAssignmentRepository extends JpaRepository<TeachingAssignment, Long> {
     List<TeachingAssignment> findByTeacher(AppUser teacher);
+    List<TeachingAssignment> findByGroup(GroupEntity group);
     List<TeachingAssignment> findByTeacherAndGroup(AppUser teacher, GroupEntity group);
     List<TeachingAssignment> findByTeacherAndSubject(AppUser teacher, Subject subject);
     boolean existsByTeacherAndGroup(AppUser teacher, GroupEntity group);

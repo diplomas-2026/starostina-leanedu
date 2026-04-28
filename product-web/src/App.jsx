@@ -16,6 +16,7 @@ import TeacherDisciplinesPage from './pages/TeacherDisciplinesPage';
 import TeacherDisciplineDetailsPage from './pages/TeacherDisciplineDetailsPage';
 import ProfilePage from './pages/ProfilePage';
 import StudentDetailsPage from './pages/StudentDetailsPage';
+import GroupDetailsPage from './pages/GroupDetailsPage';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/my-results" element={<MyResultsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/students/:id" element={<StudentDetailsPage />} />
+          <Route path="/groups/:id" element={<GroupDetailsPage />} />
 
           <Route element={<ProtectedRoute roles={['TEACHER']} />}>
             <Route path="/tests/new" element={<CreateTestPage />} />

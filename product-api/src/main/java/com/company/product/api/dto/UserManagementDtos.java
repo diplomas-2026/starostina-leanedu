@@ -29,6 +29,17 @@ public class UserManagementDtos {
         List<StudentGroupItem> groups,
         List<StudentAttemptItem> recentAttempts
     ) {}
+    public record GroupDisciplineItem(Long subjectId, String subjectCode, String subjectName, Long teacherId, String teacherName) {}
+    public record GroupSummary(
+        Long groupId,
+        String groupCode,
+        String groupName,
+        int courseYear,
+        int studentsCount,
+        int disciplinesCount,
+        List<GroupDisciplineItem> disciplines,
+        List<UserItem> students
+    ) {}
     public record TeacherGroupDashboardItem(Long groupId, String groupCode, String groupName, int studentsCount, int testsAssignedCount) {}
     public record TeacherDashboardSummary(
         int lecturesCount,

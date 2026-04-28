@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -306,6 +307,58 @@ public class UserManagementService {
             submittedAttempts.size(),
             passRate,
             groupItems
+        );
+    }
+
+    public UserManagementDtos.GroupSummary getGroupSummary(AppUser actor, Long groupId) {
+        GroupEntity group = groupRepository.findById(groupId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+
+        if (actor.getRole() == Role.TEACHER && !teachingAssignmentRepository.existsByTeacherAndGroup(actor, group)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на эту группу");
+        }
+        if (actor.getRole() == Role.STUDENT) {
+            boolean inGroup = groupStudentRepository.existsByGroupAndStudent(group, actor);
+            if (!inGroup) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "Студент не состоит в этой группе");
+            }
+        }
+
+        List<UserManagementDtos.UserItem> students = groupStudentRepository.findByGroup(group).stream()
+            .map(GroupStudent::getStudent)
+            .distinct()
+            .sorted((a, b) -> a.getFullName().compareToIgnoreCase(b.getFullName()))
+            .map(this::toItem)
+            .toList();
+
+        List<UserManagementDtos.GroupDisciplineItem> disciplines = teachingAssignmentRepository.findByGroup(group).stream()
+            .sorted(Comparator
+                .comparing((TeachingAssignment ta) -> ta.getSubject().getCode(), Comparator.nullsLast(String::compareToIgnoreCase))
+                .thenComparing(ta -> ta.getTeacher().getFullName(), String::compareToIgnoreCase))
+            .map(assignment -> new UserManagementDtos.GroupDisciplineItem(
+                assignment.getSubject().getId(),
+                assignment.getSubject().getCode(),
+                assignment.getSubject().getName(),
+                assignment.getTeacher().getId(),
+                assignment.getTeacher().getFullName()
+            ))
+            .toList();
+
+        int distinctDisciplines = (int) disciplines.stream()
+            .map(UserManagementDtos.GroupDisciplineItem::subjectId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .count();
+
+        return new UserManagementDtos.GroupSummary(
+            group.getId(),
+            group.getCode(),
+            group.getName(),
+            group.getCourseYear(),
+            students.size(),
+            distinctDisciplines,
+            disciplines,
+            students
         );
     }
 

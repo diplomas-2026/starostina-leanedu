@@ -1,8 +1,9 @@
-import { Alert, Badge, Card, Grid, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
+import { Alert, Card, Grid, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { studentApi } from '../api/services';
 import AppUserAvatar from '../components/AppUserAvatar';
+import NavigationCard from '../components/NavigationCard';
 import { extractError } from '../utils/errors';
 import { attemptStatusLabel } from '../utils/labels';
 
@@ -57,13 +58,17 @@ export default function StudentDetailsPage() {
             {summary.groups.length === 0 ? (
               <Alert color="yellow">Студент пока не состоит в группах.</Alert>
             ) : (
-              <Group>
+              <Stack>
                 {summary.groups.map((group) => (
-                  <Badge key={group.groupId} variant="light" size="lg">
-                    {group.groupCode} — {group.groupName}
-                  </Badge>
+                  <NavigationCard
+                    key={group.groupId}
+                    to={`/groups/${group.groupId}`}
+                    title={`${group.groupCode} — ${group.groupName}`}
+                    subtitle={`Курс: ${group.courseYear}`}
+                    meta="Открыть карточку группы"
+                  />
                 ))}
-              </Group>
+              </Stack>
             )}
           </Card>
 

@@ -342,7 +342,11 @@ export default function AdminTeachersPage() {
                   <Table.Tr key={assignment.id}>
                     <Table.Td>{assignment.teacherName}</Table.Td>
                     <Table.Td>{assignment.subjectName}</Table.Td>
-                    <Table.Td>{assignment.groupCode} — {assignment.groupName}</Table.Td>
+                    <Table.Td>
+                      <Text component={Link} to={`/groups/${assignment.groupId}`}>
+                        {assignment.groupCode} — {assignment.groupName}
+                      </Text>
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>

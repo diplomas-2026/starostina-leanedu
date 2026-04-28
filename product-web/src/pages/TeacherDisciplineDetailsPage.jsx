@@ -1,8 +1,7 @@
-import { Alert, Button, Card, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
+import { Alert, Button, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { lectureApi, teacherApi, testApi } from '../api/services';
-import AppUserAvatar from '../components/AppUserAvatar';
 import NavigationCard from '../components/NavigationCard';
 import { extractError } from '../utils/errors';
 
@@ -13,10 +12,7 @@ export default function TeacherDisciplineDetailsPage() {
   const [groups, setGroups] = useState([]);
   const [tests, setTests] = useState([]);
   const [lectures, setLectures] = useState([]);
-  const [selectedGroupId, setSelectedGroupId] = useState('');
-  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingStudents, setLoadingStudents] = useState(false);
   const [error, setError] = useState('');
 
   const subjectIdNum = useMemo(() => Number(subjectId), [subjectId]);
@@ -46,10 +42,6 @@ export default function TeacherDisciplineDetailsPage() {
 
         const scopedTests = testsResp.data.filter((test) => test.subjectId === subjectIdNum);
         setTests(scopedTests);
-
-        if (groupsResp.data.length > 0) {
-          setSelectedGroupId(String(groupsResp.data[0].id));
-        }
       } catch (err) {
         setError(extractError(err, 'Не удалось загрузить данные дисциплины'));
       } finally {
@@ -58,26 +50,6 @@ export default function TeacherDisciplineDetailsPage() {
     };
     load();
   }, [subjectIdNum]);
-
-  useEffect(() => {
-    if (!selectedGroupId) {
-      setStudents([]);
-      return;
-    }
-    const loadStudents = async () => {
-      setLoadingStudents(true);
-      setError('');
-      try {
-        const { data } = await teacherApi.groupStudents(selectedGroupId);
-        setStudents(data);
-      } catch (err) {
-        setError(extractError(err, 'Не удалось загрузить студентов группы'));
-      } finally {
-        setLoadingStudents(false);
-      }
-    };
-    loadStudents();
-  }, [selectedGroupId]);
 
   return (
     <Stack>
@@ -138,74 +110,15 @@ export default function TeacherDisciplineDetailsPage() {
               {groups.length === 0 ? (
                 <Alert color="yellow">По этой дисциплине пока нет назначенных групп.</Alert>
               ) : (
-                <Table striped>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>Группа</Table.Th>
-                      <Table.Th>Курс</Table.Th>
-                      <Table.Th>Действия</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {groups.map((group) => (
-                      <Table.Tr key={group.id}>
-                        <Table.Td>{group.code} — {group.name}</Table.Td>
-                        <Table.Td>{group.courseYear}</Table.Td>
-                        <Table.Td>
-                          <Group>
-                            <Button
-                              variant={selectedGroupId === String(group.id) ? 'filled' : 'light'}
-                              size="xs"
-                              onClick={() => setSelectedGroupId(String(group.id))}
-                            >
-                              Студенты
-                            </Button>
-                            <Button component={Link} to={`/gradebook?groupId=${group.id}`} size="xs" variant="outline">
-                              Журнал
-                            </Button>
-                          </Group>
-                        </Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-              )}
-
-              {selectedGroupId && (
-                <Card withBorder>
-                  <Stack>
-                    <Text fw={600}>Студенты выбранной группы</Text>
-                    {loadingStudents ? (
-                      <Loader color="teal" />
-                    ) : students.length === 0 ? (
-                      <Alert color="yellow">В выбранной группе нет студентов.</Alert>
-                    ) : (
-                      <Table striped>
-                        <Table.Thead>
-                          <Table.Tr>
-                            <Table.Th>ID</Table.Th>
-                            <Table.Th>ФИО</Table.Th>
-                            <Table.Th>Email</Table.Th>
-                          </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>
-                          {students.map((student) => (
-                            <Table.Tr key={student.id}>
-                              <Table.Td>{student.id}</Table.Td>
-                              <Table.Td>
-                                <Group gap="sm">
-                                  <AppUserAvatar user={student} size={30} />
-                                  <Text component={Link} to={`/students/${student.id}`}>{student.fullName}</Text>
-                                </Group>
-                              </Table.Td>
-                              <Table.Td>{student.email}</Table.Td>
-                            </Table.Tr>
-                          ))}
-                        </Table.Tbody>
-                      </Table>
-                    )}
-                  </Stack>
-                </Card>
+                groups.map((group) => (
+                  <NavigationCard
+                    key={group.id}
+                    to={`/groups/${group.id}`}
+                    title={`${group.code} — ${group.name}`}
+                    subtitle={`Курс: ${group.courseYear}`}
+                    meta="Открыть карточку группы"
+                  />
+                ))
               )}
             </Stack>
           </Card>

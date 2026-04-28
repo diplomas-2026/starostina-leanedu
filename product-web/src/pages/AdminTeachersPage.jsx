@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../api/services';
 import AppUserAvatar from '../components/AppUserAvatar';
+import ListControls from '../components/ListControls';
 import { extractError } from '../utils/errors';
 
 export default function AdminTeachersPage() {
@@ -20,6 +21,10 @@ export default function AdminTeachersPage() {
   const [subjectForm, setSubjectForm] = useState({ code: '', name: '' });
   const [assignmentForm, setAssignmentForm] = useState({ teacherId: '', subjectId: '', groupId: '' });
   const [studentGroupForm, setStudentGroupForm] = useState({ groupId: '', studentId: '' });
+  const [teachersSearch, setTeachersSearch] = useState('');
+  const [studentsSearch, setStudentsSearch] = useState('');
+  const [subjectsSearch, setSubjectsSearch] = useState('');
+  const [assignmentsSearch, setAssignmentsSearch] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,6 +49,18 @@ export default function AdminTeachersPage() {
     () => subjects.map((s) => ({ value: String(s.id), label: `${s.code} — ${s.name}` })),
     [subjects],
   );
+  const visibleTeachers = useMemo(() => teachers
+    .filter((teacher) => `${teacher.fullName} ${teacher.email}`.toLowerCase().includes(teachersSearch.trim().toLowerCase()))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru')), [teachers, teachersSearch]);
+  const visibleGroupStudents = useMemo(() => groupStudents
+    .filter((student) => `${student.fullName} ${student.email} ${student.id}`.toLowerCase().includes(studentsSearch.trim().toLowerCase()))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru')), [groupStudents, studentsSearch]);
+  const visibleSubjects = useMemo(() => subjects
+    .filter((subject) => `${subject.code} ${subject.name}`.toLowerCase().includes(subjectsSearch.trim().toLowerCase()))
+    .sort((a, b) => a.code.localeCompare(b.code, 'ru')), [subjects, subjectsSearch]);
+  const visibleAssignments = useMemo(() => assignments
+    .filter((assignment) => `${assignment.teacherName} ${assignment.subjectName} ${assignment.groupCode} ${assignment.groupName}`.toLowerCase().includes(assignmentsSearch.trim().toLowerCase()))
+    .sort((a, b) => a.teacherName.localeCompare(b.teacherName, 'ru')), [assignments, assignmentsSearch]);
 
   const load = async () => {
     setLoading(true);
@@ -224,12 +241,17 @@ export default function AdminTeachersPage() {
             </form>
           </Card>
           <Card withBorder mt="md">
+            <ListControls
+              search={teachersSearch}
+              onSearchChange={setTeachersSearch}
+              searchPlaceholder="ФИО или email преподавателя"
+            />
             <Table striped>
               <Table.Thead>
                 <Table.Tr><Table.Th>ФИО</Table.Th><Table.Th>Email</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {teachers.map((teacher) => (
+                {visibleTeachers.map((teacher) => (
                   <Table.Tr key={teacher.id}>
                     <Table.Td>
                       <Group gap="sm">
@@ -285,12 +307,17 @@ export default function AdminTeachersPage() {
                 searchable
               />
             </Group>
+            <ListControls
+              search={studentsSearch}
+              onSearchChange={setStudentsSearch}
+              searchPlaceholder="ID, ФИО или email студента"
+            />
             <Table striped>
               <Table.Thead>
                 <Table.Tr><Table.Th>ID</Table.Th><Table.Th>ФИО</Table.Th><Table.Th>Email</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {groupStudents.map((student) => (
+                {visibleGroupStudents.map((student) => (
                   <Table.Tr key={student.id}>
                     <Table.Td>{student.id}</Table.Td>
                     <Table.Td>
@@ -318,12 +345,17 @@ export default function AdminTeachersPage() {
             </form>
           </Card>
           <Card withBorder mt="md">
+            <ListControls
+              search={subjectsSearch}
+              onSearchChange={setSubjectsSearch}
+              searchPlaceholder="Код или название дисциплины"
+            />
             <Table striped>
               <Table.Thead>
                 <Table.Tr><Table.Th>Код</Table.Th><Table.Th>Название</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {subjects.map((subject) => (
+                {visibleSubjects.map((subject) => (
                   <Table.Tr key={subject.id}><Table.Td>{subject.code}</Table.Td><Table.Td>{subject.name}</Table.Td></Table.Tr>
                 ))}
               </Table.Tbody>
@@ -348,12 +380,17 @@ export default function AdminTeachersPage() {
               <Text fw={600}>Текущие назначения</Text>
               <Text size="sm" c="dimmed">Всего: {assignments.length}</Text>
             </Group>
+            <ListControls
+              search={assignmentsSearch}
+              onSearchChange={setAssignmentsSearch}
+              searchPlaceholder="Преподаватель, дисциплина или группа"
+            />
             <Table striped>
               <Table.Thead>
                 <Table.Tr><Table.Th>Преподаватель</Table.Th><Table.Th>Дисциплина</Table.Th><Table.Th>Группа</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {assignments.map((assignment) => (
+                {visibleAssignments.map((assignment) => (
                   <Table.Tr key={assignment.id}>
                     <Table.Td>{assignment.teacherName}</Table.Td>
                     <Table.Td>{assignment.subjectName}</Table.Td>

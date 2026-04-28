@@ -1,7 +1,8 @@
 import { Alert, Button, Card, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { lectureApi, teacherApi } from '../api/services';
+import ListControls from '../components/ListControls';
 import NavigationCard from '../components/NavigationCard';
 import LectureEditor from '../components/LectureEditor';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +14,9 @@ export default function LecturesPage() {
   const [searchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [disciplines, setDisciplines] = useState([]);
+  const [search, setSearch] = useState('');
+  const [sortValue, setSortValue] = useState('title_asc');
+  const [filterValue, setFilterValue] = useState('all');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingDisciplines, setLoadingDisciplines] = useState(false);
@@ -85,6 +89,22 @@ export default function LecturesPage() {
     loadData(selectedSubjectId);
   }, [selectedSubjectId]);
 
+  const visibleItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    let filtered = items.filter((lecture) =>
+      `${lecture.title} ${lecture.summary} ${lecture.subjectName || ''}`.toLowerCase().includes(query),
+    );
+    if (filterValue === 'published') {
+      filtered = filtered.filter((lecture) => lecture.published);
+    } else if (filterValue === 'draft') {
+      filtered = filtered.filter((lecture) => !lecture.published);
+    }
+    return filtered.sort((a, b) => {
+      if (sortValue === 'subject_asc') return (a.subjectName || '').localeCompare((b.subjectName || ''), 'ru');
+      return a.title.localeCompare(b.title, 'ru');
+    });
+  }, [items, search, filterValue, sortValue]);
+
   const handleCreateLecture = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -126,6 +146,24 @@ export default function LecturesPage() {
       {message && <Alert color="green">{message}</Alert>}
       {(loading || loadingDisciplines) && <Loader color="teal" />}
       {error && <Alert color="red">{error}</Alert>}
+      <ListControls
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Название, описание или дисциплина"
+        filterValue={filterValue}
+        onFilterChange={setFilterValue}
+        filterOptions={[
+          { value: 'all', label: 'Все статусы' },
+          { value: 'published', label: 'Только опубликованные' },
+          { value: 'draft', label: 'Только черновики' },
+        ]}
+        sortValue={sortValue}
+        onSortChange={setSortValue}
+        sortOptions={[
+          { value: 'title_asc', label: 'По названию (А-Я)' },
+          { value: 'subject_asc', label: 'По дисциплине (А-Я)' },
+        ]}
+      />
 
       {user?.role === 'TEACHER' && (
         <Card withBorder>
@@ -143,7 +181,7 @@ export default function LecturesPage() {
           />
         </Card>
       )}
-      {items.map((lecture) => (
+      {visibleItems.map((lecture) => (
         <NavigationCard
           key={lecture.id}
           to={`/lectures/${lecture.id}`}

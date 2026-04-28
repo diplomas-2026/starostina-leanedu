@@ -1,9 +1,16 @@
 import { Alert, Card, Loader, ScrollArea, Select, Stack, Table, Text, Title } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { gradebookApi } from '../api/services';
 import { GradeBadge, GradebookStatusBadge } from '../components/SemanticBadges';
+import ListControls from '../components/ListControls';
 import { extractError } from '../utils/errors';
+
+function averageGrade(cells) {
+  const grades = cells.map((cell) => cell.grade).filter((grade) => grade != null);
+  if (grades.length === 0) return 0;
+  return grades.reduce((sum, value) => sum + value, 0) / grades.length;
+}
 
 export default function GradebookPage() {
   const [searchParams] = useSearchParams();
@@ -12,6 +19,9 @@ export default function GradebookPage() {
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [matrix, setMatrix] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sortValue, setSortValue] = useState('name_asc');
+  const [filterValue, setFilterValue] = useState('all');
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [loadingMatrix, setLoadingMatrix] = useState(false);
@@ -92,6 +102,25 @@ export default function GradebookPage() {
     loadMatrix();
   }, [selectedGroupId, selectedSubjectId]);
 
+  const visibleRows = useMemo(() => {
+    if (!matrix) return [];
+    const query = search.trim().toLowerCase();
+    let rows = matrix.rows.filter((row) => row.studentName.toLowerCase().includes(query));
+    if (filterValue === 'with_grade') {
+      rows = rows.filter((row) => row.cells.some((cell) => cell.grade != null));
+    } else if (filterValue === 'no_grade') {
+      rows = rows.filter((row) => row.cells.every((cell) => cell.grade == null));
+    }
+    return rows.sort((a, b) => {
+      if (sortValue === 'grade_desc') {
+        const avgA = averageGrade(a.cells);
+        const avgB = averageGrade(b.cells);
+        return avgB - avgA;
+      }
+      return a.studentName.localeCompare(b.studentName, 'ru');
+    });
+  }, [matrix, search, filterValue, sortValue]);
+
   const formatDueAt = (value) => {
     if (!value) return 'Без дедлайна';
     return new Date(value).toLocaleString('ru-RU', {
@@ -151,7 +180,26 @@ export default function GradebookPage() {
             {matrix.columns.length === 0 ? (
               <Alert color="blue">Для выбранной группы пока нет назначенных тестов.</Alert>
             ) : (
-              <ScrollArea>
+              <Stack>
+                <ListControls
+                  search={search}
+                  onSearchChange={setSearch}
+                  searchPlaceholder="Поиск по студенту"
+                  filterValue={filterValue}
+                  onFilterChange={setFilterValue}
+                  filterOptions={[
+                    { value: 'all', label: 'Все строки' },
+                    { value: 'with_grade', label: 'Только с оценками' },
+                    { value: 'no_grade', label: 'Только без оценок' },
+                  ]}
+                  sortValue={sortValue}
+                  onSortChange={setSortValue}
+                  sortOptions={[
+                    { value: 'name_asc', label: 'По ФИО (А-Я)' },
+                    { value: 'grade_desc', label: 'По средней оценке (убыв.)' },
+                  ]}
+                />
+                <ScrollArea>
                 <Table striped highlightOnHover withTableBorder withColumnBorders>
                   <Table.Thead>
                     <Table.Tr>
@@ -168,7 +216,7 @@ export default function GradebookPage() {
                   </Table.Thead>
 
                   <Table.Tbody>
-                    {matrix.rows.map((row) => (
+                    {visibleRows.map((row) => (
                       <Table.Tr key={row.studentId}>
                         <Table.Td><Text component={Link} to={`/students/${row.studentId}`}>{row.studentName}</Text></Table.Td>
                         {row.cells.map((cell, index) => (
@@ -189,7 +237,8 @@ export default function GradebookPage() {
                     ))}
                   </Table.Tbody>
                 </Table>
-              </ScrollArea>
+                </ScrollArea>
+              </Stack>
             )}
           </Stack>
         )}

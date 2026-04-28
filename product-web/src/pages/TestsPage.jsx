@@ -1,7 +1,8 @@
 import { Alert, Button, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { testApi } from '../api/services';
+import ListControls from '../components/ListControls';
 import { useAuth } from '../context/AuthContext';
 import NavigationCard from '../components/NavigationCard';
 import { extractError } from '../utils/errors';
@@ -12,6 +13,9 @@ export default function TestsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [search, setSearch] = useState('');
+  const [sortValue, setSortValue] = useState('title_asc');
+  const [filterValue, setFilterValue] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -37,6 +41,22 @@ export default function TestsPage() {
     loadData();
   }, [searchParams, user?.role]);
 
+  const visibleItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    let filtered = items.filter((test) =>
+      `${test.title} ${test.description || ''} ${test.subjectName || ''}`.toLowerCase().includes(query),
+    );
+    if (filterValue === 'published') {
+      filtered = filtered.filter((test) => test.published);
+    } else if (filterValue === 'draft') {
+      filtered = filtered.filter((test) => !test.published);
+    }
+    return filtered.sort((a, b) => {
+      if (sortValue === 'subject_asc') return (a.subjectName || '').localeCompare((b.subjectName || ''), 'ru');
+      return a.title.localeCompare(b.title, 'ru');
+    });
+  }, [items, search, filterValue, sortValue]);
+
   const startAttempt = async (testId) => {
     setError('');
     try {
@@ -60,7 +80,25 @@ export default function TestsPage() {
 
       {loading && <Loader color="teal" />}
       {error && <Alert color="red">{error}</Alert>}
-      {items.map((test) => (
+      <ListControls
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Название, описание или дисциплина"
+        filterValue={filterValue}
+        onFilterChange={setFilterValue}
+        filterOptions={[
+          { value: 'all', label: 'Все статусы' },
+          { value: 'published', label: 'Только опубликованные' },
+          { value: 'draft', label: 'Только черновики' },
+        ]}
+        sortValue={sortValue}
+        onSortChange={setSortValue}
+        sortOptions={[
+          { value: 'title_asc', label: 'По названию (А-Я)' },
+          { value: 'subject_asc', label: 'По дисциплине (А-Я)' },
+        ]}
+      />
+      {visibleItems.map((test) => (
         user?.role === 'STUDENT' ? (
           <Card key={test.id} withBorder radius="md" shadow="sm">
             <Group justify="space-between" align="start">

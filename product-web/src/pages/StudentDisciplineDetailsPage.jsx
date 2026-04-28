@@ -1,7 +1,8 @@
 import { Alert, Badge, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { studentApi } from '../api/services';
+import ListControls from '../components/ListControls';
 import NavigationCard from '../components/NavigationCard';
 import { AttemptStatusBadge, GradeBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
@@ -9,6 +10,8 @@ import { extractError } from '../utils/errors';
 export default function StudentDisciplineDetailsPage() {
   const { subjectId } = useParams();
   const [details, setDetails] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sortValue, setSortValue] = useState('title_asc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -28,12 +31,35 @@ export default function StudentDisciplineDetailsPage() {
     loadData();
   }, [subjectId]);
 
+  const visibleLectures = useMemo(() => {
+    const lectures = details?.lectures || [];
+    const query = search.trim().toLowerCase();
+    const filtered = lectures.filter((lecture) =>
+      `${lecture.lectureTitle} ${lecture.lectureSummary}`.toLowerCase().includes(query),
+    );
+    return filtered.sort((a, b) => {
+      if (sortValue === 'grade_desc') return (b.averageGrade || 0) - (a.averageGrade || 0);
+      return a.lectureTitle.localeCompare(b.lectureTitle, 'ru');
+    });
+  }, [details, search, sortValue]);
+
   if (loading) return <Loader color="teal" />;
 
   return (
     <Stack>
       <Title order={2}>{details?.subjectCode} · {details?.subjectName}</Title>
       <Text c="dimmed">Преподаватель: {details?.teacherName} · Группа: {details?.groupCode}</Text>
+      <ListControls
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Поиск по лекциям"
+        sortValue={sortValue}
+        onSortChange={setSortValue}
+        sortOptions={[
+          { value: 'title_asc', label: 'По названию (А-Я)' },
+          { value: 'grade_desc', label: 'По средней оценке (убыв.)' },
+        ]}
+      />
 
       {error && <Alert color="red">{error}</Alert>}
 
@@ -41,7 +67,7 @@ export default function StudentDisciplineDetailsPage() {
         <Alert color="yellow">По этой дисциплине пока нет опубликованных лекций.</Alert>
       )}
 
-      {details?.lectures?.map((lecture) => (
+      {visibleLectures.map((lecture) => (
         <Stack key={lecture.lectureId} gap="xs">
           <NavigationCard
             to={`/lectures/${lecture.lectureId}`}

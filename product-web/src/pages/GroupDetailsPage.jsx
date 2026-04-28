@@ -1,13 +1,16 @@
 import { Alert, Button, Card, Grid, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { groupApi } from '../api/services';
+import ListControls from '../components/ListControls';
 import NavigationCard from '../components/NavigationCard';
 import { extractError } from '../utils/errors';
 
 export default function GroupDetailsPage() {
   const { id } = useParams();
   const [summary, setSummary] = useState(null);
+  const [disciplinesSearch, setDisciplinesSearch] = useState('');
+  const [studentsSearch, setStudentsSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -26,6 +29,22 @@ export default function GroupDetailsPage() {
     };
     load();
   }, [id]);
+
+  const visibleDisciplines = useMemo(() => {
+    if (!summary) return [];
+    const query = disciplinesSearch.trim().toLowerCase();
+    return summary.disciplines.filter((item) =>
+      `${item.subjectCode} ${item.subjectName} ${item.teacherName}`.toLowerCase().includes(query),
+    );
+  }, [summary, disciplinesSearch]);
+
+  const visibleStudents = useMemo(() => {
+    if (!summary) return [];
+    const query = studentsSearch.trim().toLowerCase();
+    return summary.students.filter((student) =>
+      `${student.fullName} ${student.email}`.toLowerCase().includes(query),
+    );
+  }, [summary, studentsSearch]);
 
   return (
     <Stack>
@@ -52,7 +71,12 @@ export default function GroupDetailsPage() {
           <Card withBorder>
             <Stack>
               <Text fw={700}>Дисциплины группы</Text>
-              {summary.disciplines.length === 0 ? (
+              <ListControls
+                search={disciplinesSearch}
+                onSearchChange={setDisciplinesSearch}
+                searchPlaceholder="Поиск по дисциплинам и преподавателям"
+              />
+              {visibleDisciplines.length === 0 ? (
                 <Alert color="yellow">Для группы пока нет назначенных дисциплин.</Alert>
               ) : (
                 <Table striped>
@@ -63,7 +87,7 @@ export default function GroupDetailsPage() {
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
-                    {summary.disciplines.map((item, idx) => (
+                    {visibleDisciplines.map((item, idx) => (
                       <Table.Tr key={`${item.subjectId}-${item.teacherId}-${idx}`}>
                         <Table.Td>{item.subjectCode} — {item.subjectName}</Table.Td>
                         <Table.Td>{item.teacherName}</Table.Td>
@@ -78,10 +102,15 @@ export default function GroupDetailsPage() {
           <Card withBorder>
             <Stack>
               <Text fw={700}>Студенты группы</Text>
-              {summary.students.length === 0 ? (
+              <ListControls
+                search={studentsSearch}
+                onSearchChange={setStudentsSearch}
+                searchPlaceholder="Поиск по студентам"
+              />
+              {visibleStudents.length === 0 ? (
                 <Alert color="yellow">В группе пока нет студентов.</Alert>
               ) : (
-                summary.students.map((student) => (
+                visibleStudents.map((student) => (
                   <NavigationCard
                     key={student.id}
                     to={`/students/${student.id}`}

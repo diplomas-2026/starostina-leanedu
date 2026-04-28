@@ -2,6 +2,7 @@ import { Alert, Button, Card, Group, Loader, Stack, Text, Title } from '@mantine
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { lectureApi, teacherApi, testApi } from '../api/services';
+import ListControls from '../components/ListControls';
 import NavigationCard from '../components/NavigationCard';
 import { extractError } from '../utils/errors';
 
@@ -12,6 +13,9 @@ export default function TeacherDisciplineDetailsPage() {
   const [groups, setGroups] = useState([]);
   const [tests, setTests] = useState([]);
   const [lectures, setLectures] = useState([]);
+  const [lecturesSearch, setLecturesSearch] = useState('');
+  const [testsSearch, setTestsSearch] = useState('');
+  const [groupsSearch, setGroupsSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -51,6 +55,16 @@ export default function TeacherDisciplineDetailsPage() {
     load();
   }, [subjectIdNum]);
 
+  const visibleLectures = useMemo(() => lectures
+    .filter((lecture) => `${lecture.title} ${lecture.summary}`.toLowerCase().includes(lecturesSearch.trim().toLowerCase()))
+    .sort((a, b) => a.title.localeCompare(b.title, 'ru')), [lectures, lecturesSearch]);
+  const visibleTests = useMemo(() => tests
+    .filter((test) => `${test.title} ${test.description}`.toLowerCase().includes(testsSearch.trim().toLowerCase()))
+    .sort((a, b) => a.title.localeCompare(b.title, 'ru')), [tests, testsSearch]);
+  const visibleGroups = useMemo(() => groups
+    .filter((group) => `${group.code} ${group.name}`.toLowerCase().includes(groupsSearch.trim().toLowerCase()))
+    .sort((a, b) => a.code.localeCompare(b.code, 'ru')), [groups, groupsSearch]);
+
   return (
     <Stack>
       <Group justify="space-between">
@@ -69,10 +83,15 @@ export default function TeacherDisciplineDetailsPage() {
           <Card withBorder>
             <Stack>
               <Text fw={700}>Лекции по дисциплине</Text>
-              {lectures.length === 0 ? (
+              <ListControls
+                search={lecturesSearch}
+                onSearchChange={setLecturesSearch}
+                searchPlaceholder="Поиск по лекциям"
+              />
+              {visibleLectures.length === 0 ? (
                 <Alert color="yellow">Лекций по этой дисциплине пока нет.</Alert>
               ) : (
-                lectures.map((lecture) => (
+                visibleLectures.map((lecture) => (
                   <NavigationCard
                     key={lecture.id}
                     to={`/lectures/${lecture.id}`}
@@ -88,10 +107,15 @@ export default function TeacherDisciplineDetailsPage() {
           <Card withBorder>
             <Stack>
               <Text fw={700}>Тесты по дисциплине</Text>
-              {tests.length === 0 ? (
+              <ListControls
+                search={testsSearch}
+                onSearchChange={setTestsSearch}
+                searchPlaceholder="Поиск по тестам"
+              />
+              {visibleTests.length === 0 ? (
                 <Alert color="yellow">Тестов по этой дисциплине пока нет.</Alert>
               ) : (
-                tests.map((test) => (
+                visibleTests.map((test) => (
                   <NavigationCard
                     key={test.id}
                     to={`/tests/${test.id}`}
@@ -107,10 +131,15 @@ export default function TeacherDisciplineDetailsPage() {
           <Card withBorder>
             <Stack>
               <Text fw={700}>Группы по дисциплине</Text>
-              {groups.length === 0 ? (
+              <ListControls
+                search={groupsSearch}
+                onSearchChange={setGroupsSearch}
+                searchPlaceholder="Поиск по группам"
+              />
+              {visibleGroups.length === 0 ? (
                 <Alert color="yellow">По этой дисциплине пока нет назначенных групп.</Alert>
               ) : (
-                groups.map((group) => (
+                visibleGroups.map((group) => (
                   <NavigationCard
                     key={group.id}
                     to={`/groups/${group.id}`}

@@ -46,74 +46,20 @@ jobs:
           ssh "${{ vars.VPS_USER }}@${{ vars.VPS_HOST }}" "DEPLOY_DIR='${{ vars.DEPLOY_DIR }}' FQDN='${{ vars.FQDN }}' bash -s" <<'REMOTE'
           set -euo pipefail
 
-          cd "$DEPLOY_DIR/product-api"
-
-          if [ ! -f .env ]; then
-            JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
-            printf '%s\n' \
-              "DB_URL=jdbc:postgresql://postgres:5432/product_db" \
-              "DB_USER=product" \
-              "DB_PASSWORD=product" \
-              "APP_JWT_SECRET=${JWT_SECRET}" \
-              "GIGACHAT_API_KEY=demo-key" \
-              "GIGACHAT_BASE_URL=https://gigachat.devices.sberbank.ru/api/v1" \
-              "GIGACHAT_MODEL=GigaChat" > .env
-          fi
-
           API_PORT=18081
-          echo "Using fixed API port: ${API_PORT}"
+          SHARED_COMPOSE_FILE="/opt/docker-compose.yml"
+          LEGACY_STACK_FILE="$DEPLOY_DIR/product-api/docker-compose.runtime.yml"
 
-          PORT_HOLDER=$(docker ps -q --filter "publish=${API_PORT}" | head -n 1 || true)
-          if [ -n "${PORT_HOLDER}" ]; then
-            HOLDER_PROJECT=$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' "${PORT_HOLDER}" 2>/dev/null || true)
-            if [ "${HOLDER_PROJECT}" = "starostina_leanedu" ]; then
-              echo "Port ${API_PORT} is occupied by existing project container ${PORT_HOLDER}, removing it"
-              docker rm -f "${PORT_HOLDER}"
-            else
-              echo "Port ${API_PORT} is occupied by foreign container ${PORT_HOLDER} (project=${HOLDER_PROJECT:-unknown})."
-              echo "Refusing to change port automatically to avoid nginx mismatch."
-              exit 1
-            fi
-          fi
-
-          printf '%s\n' \
-            "services:" \
-            "  postgres:" \
-            "    image: postgres:16" \
-            "    environment:" \
-            "      POSTGRES_DB: product_db" \
-            "      POSTGRES_USER: product" \
-            "      POSTGRES_PASSWORD: product" \
-            "    ports:" \
-            "      - \"127.0.0.1:15436:5432\"" \
-            "    healthcheck:" \
-            "      test: [\"CMD-SHELL\", \"pg_isready -U product -d product_db\"]" \
-            "      interval: 5s" \
-            "      timeout: 3s" \
-            "      retries: 20" \
-            "" \
-            "  api:" \
-            "    build:" \
-            "      context: ." \
-            "    depends_on:" \
-            "      postgres:" \
-            "        condition: service_healthy" \
-            "    env_file:" \
-            "      - .env" \
-            "    ports:" \
-            "      - \"127.0.0.1:${API_PORT}:8080\"" > docker-compose.runtime.yml
-
-          docker compose -p starostina_leanedu -f docker-compose.runtime.yml up -d --build
-
-          NGINX_SITE="/etc/nginx/sites-enabled/${FQDN}"
-          if [ ! -f "$NGINX_SITE" ]; then
-            echo "Nginx config not found: ${NGINX_SITE}"
+          if [ ! -f "$SHARED_COMPOSE_FILE" ]; then
+            echo "Shared compose file not found: ${SHARED_COMPOSE_FILE}"
             exit 1
           fi
-          if ! grep -q "127.0.0.1:${API_PORT}" "$NGINX_SITE"; then
-            echo "Nginx config does not point to expected API port ${API_PORT}"
-            exit 1
+
+          if [ -f "$LEGACY_STACK_FILE" ]; then
+            docker compose -p starostina_leanedu -f "$LEGACY_STACK_FILE" down --remove-orphans || true
           fi
+
+          docker compose -p opt -f "$SHARED_COMPOSE_FILE" up -d --build starostina-api
 
           api_ready=0
           for i in $(seq 1 60); do

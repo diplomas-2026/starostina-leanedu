@@ -1,9 +1,9 @@
 import { Alert, Card, Grid, Group, Loader, Progress, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { lectureApi, teacherApi, testApi } from '../api/services';
+import { RoleBadge } from '../components/SemanticBadges';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
-import { roleLabel } from '../utils/labels';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -63,7 +63,7 @@ export default function DashboardPage() {
         <Card withBorder>
           <Group justify="space-between">
             <Text fw={600}>Роль</Text>
-            <Text>{roleLabel(user?.role)}</Text>
+            <RoleBadge role={user?.role} />
           </Group>
         </Card>
       )}

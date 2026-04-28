@@ -1,12 +1,12 @@
-import { Alert, Badge, Button, Group, Loader, Stack, Text, Textarea, Title } from '@mantine/core';
+import { Alert, Button, Group, Loader, Stack, Text, Textarea, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { aiApi, lectureApi } from '../api/services';
 import AiLimitsCard from '../components/AiLimitsCard';
 import NavigationCard from '../components/NavigationCard';
+import { PublishStatusBadge } from '../components/SemanticBadges';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
-import { publishStatusLabel } from '../utils/labels';
 
 export default function LectureDetailsPage() {
   const { id } = useParams();
@@ -90,9 +90,7 @@ export default function LectureDetailsPage() {
         <div>
           <Title order={2}>{lecture?.title}</Title>
           <Text c="dimmed">{lecture?.summary}</Text>
-          <Badge mt={8} variant="light">
-            {publishStatusLabel(lecture?.published)}
-          </Badge>
+          <PublishStatusBadge published={lecture?.published} />
         </div>
         {user?.role === 'TEACHER' && (
           <Group>
@@ -141,7 +139,7 @@ export default function LectureDetailsPage() {
               to={user?.role === 'STUDENT' ? `/tests/${test.id}/take` : `/tests/${test.id}`}
               title={test.title}
               subtitle={test.description}
-              meta={publishStatusLabel(test.published)}
+              meta={test.published ? 'Опубликован' : 'Черновик'}
             />
           ))
         ) : (

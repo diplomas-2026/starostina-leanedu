@@ -3,8 +3,8 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconBook2, IconChartBar, IconHome2, IconLogout, IconSparkles, IconUser, IconUsers } from '@tabler/icons-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { roleLabel } from '../utils/labels';
 import AppUserAvatar from './AppUserAvatar';
+import { RoleBadge } from './SemanticBadges';
 
 const LINKS = {
   ADMIN: [
@@ -57,7 +57,7 @@ export default function MainLayout() {
           <Group>
             <AppUserAvatar user={user} size={32} />
             <Text size="sm">{user?.fullName}</Text>
-            <Text size="xs" c="dimmed">{roleLabel(user?.role)}</Text>
+            <RoleBadge role={user?.role} size="xs" />
           </Group>
         </Group>
       </AppShell.Header>

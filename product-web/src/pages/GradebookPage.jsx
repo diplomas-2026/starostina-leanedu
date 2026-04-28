@@ -2,6 +2,7 @@ import { Alert, Badge, Card, Loader, ScrollArea, Select, Stack, Table, Text, Tit
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { gradebookApi } from '../api/services';
+import { GradebookStatusBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
 
 export default function GradebookPage() {
@@ -182,12 +183,7 @@ export default function GradebookPage() {
                                 </Text>
                               </Stack>
                             ) : (
-                              <Badge
-                                color={cell.status === 'Не выполнен' ? 'red' : cell.status === 'В процессе' ? 'yellow' : 'gray'}
-                                variant="light"
-                              >
-                                {cell.status}
-                              </Badge>
+                              <GradebookStatusBadge status={cell.status} />
                             )}
                           </Table.Td>
                         ))}

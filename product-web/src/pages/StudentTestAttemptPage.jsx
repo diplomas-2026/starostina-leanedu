@@ -2,8 +2,8 @@ import { Alert, Button, Card, Group, Loader, Radio, Stack, Text, Title } from '@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { testApi } from '../api/services';
+import { AttemptStatusBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
-import { attemptStatusLabel } from '../utils/labels';
 
 function formatSeconds(seconds) {
   const safe = Math.max(0, seconds);
@@ -102,7 +102,7 @@ export default function StudentTestAttemptPage() {
       {session && (
         <Card withBorder>
           <Group justify="space-between">
-            <Text>Статус: {attemptStatusLabel(session.status)}</Text>
+            <AttemptStatusBadge status={session.status} />
             {session.status === 'IN_PROGRESS' ? (
               <Text fw={700}>Осталось: {formatSeconds(secondsLeft)}</Text>
             ) : (

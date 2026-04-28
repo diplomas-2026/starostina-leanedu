@@ -1,8 +1,8 @@
-import { Alert, Card, Loader, Stack, Text, Title } from '@mantine/core';
+import { Alert, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { testApi } from '../api/services';
+import { AttemptStatusBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
-import { attemptStatusLabel } from '../utils/labels';
 
 export default function MyResultsPage() {
   const [items, setItems] = useState([]);
@@ -32,10 +32,12 @@ export default function MyResultsPage() {
       {error && <Alert color="red">{error}</Alert>}
       {items.map((it) => (
         <Card key={it.id} withBorder>
-          <Text fw={600}>{it.testTitle}</Text>
+          <Group justify="space-between">
+            <Text fw={600}>{it.testTitle}</Text>
+            <AttemptStatusBadge status={it.status} />
+          </Group>
           <Text>Баллы: {it.score} / {it.maxScore}</Text>
           {it.grade ? <Text>Оценка: {it.grade}</Text> : null}
-          <Text size="sm" c="dimmed">Статус: {attemptStatusLabel(it.status)}</Text>
         </Card>
       ))}
     </Stack>

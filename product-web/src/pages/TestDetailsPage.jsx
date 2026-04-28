@@ -2,9 +2,9 @@ import { Alert, Badge, Button, Card, Group, List, Loader, Select, Stack, Table, 
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { teacherApi, testApi } from '../api/services';
+import { PublishStatusBadge } from '../components/SemanticBadges';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
-import { publishStatusLabel } from '../utils/labels';
 
 export default function TestDetailsPage() {
   const { user } = useAuth();
@@ -98,7 +98,7 @@ export default function TestDetailsPage() {
             Пороги: 3 от {test.minScore3}, 4 от {test.minScore4}, 5 от {test.minScore5}
           </Text>
         </Stack>
-        <Badge variant="light">{publishStatusLabel(test.published)}</Badge>
+        <PublishStatusBadge published={test.published} />
       </Group>
 
       {error && <Alert color="red">{error}</Alert>}

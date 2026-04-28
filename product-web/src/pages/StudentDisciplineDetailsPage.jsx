@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { studentApi } from '../api/services';
 import NavigationCard from '../components/NavigationCard';
+import { AttemptStatusBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
-import { attemptStatusLabel } from '../utils/labels';
 
 export default function StudentDisciplineDetailsPage() {
   const { subjectId } = useParams();
@@ -57,7 +57,7 @@ export default function StudentDisciplineDetailsPage() {
                   {test.testTitle}
                 </Text>
                 <Group gap="xs">
-                  <Badge variant="light">{attemptStatusLabel(test.status)}</Badge>
+                  <AttemptStatusBadge status={test.status} />
                   {test.grade ? <Badge color="teal">Оценка: {test.grade}</Badge> : null}
                   {test.score != null && test.maxScore != null ? (
                     <Badge color="blue">{test.score}/{test.maxScore}</Badge>

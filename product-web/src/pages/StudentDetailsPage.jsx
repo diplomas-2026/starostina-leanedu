@@ -4,8 +4,8 @@ import { Link, useParams } from 'react-router-dom';
 import { studentApi } from '../api/services';
 import AppUserAvatar from '../components/AppUserAvatar';
 import NavigationCard from '../components/NavigationCard';
+import { AttemptStatusBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
-import { attemptStatusLabel } from '../utils/labels';
 
 export default function StudentDetailsPage() {
   const { id } = useParams();
@@ -92,7 +92,7 @@ export default function StudentDetailsPage() {
                     <Table.Tr key={attempt.attemptId}>
                       <Table.Td><Text component={Link} to={`/tests/${attempt.testId}`}>{attempt.testTitle}</Text></Table.Td>
                       <Table.Td>{attempt.subjectName || '—'}</Table.Td>
-                      <Table.Td>{attemptStatusLabel(attempt.status)}</Table.Td>
+                      <Table.Td><AttemptStatusBadge status={attempt.status} /></Table.Td>
                       <Table.Td>{attempt.score} / {attempt.maxScore}</Table.Td>
                       <Table.Td>{attempt.grade ?? '—'}</Table.Td>
                     </Table.Tr>

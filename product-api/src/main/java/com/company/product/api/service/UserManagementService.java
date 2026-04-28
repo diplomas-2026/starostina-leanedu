@@ -265,7 +265,8 @@ public class UserManagementService {
                 assignment.getTeacher().getFullName(),
                 group.getId(),
                 group.getCode(),
-                group.getName()
+                group.getName(),
+                calculateDisciplineGrade(student, group, assignment.getSubject())
             ))
             .toList();
     }
@@ -342,6 +343,13 @@ public class UserManagementService {
             })
             .toList();
 
+        Integer disciplineGrade = averageRounded(
+            lectureItems.stream()
+                .map(UserManagementDtos.StudentLectureProgressItem::averageGrade)
+                .filter(Objects::nonNull)
+                .toList()
+        );
+
         return new UserManagementDtos.StudentDisciplineDetails(
             subject.getId(),
             subject.getCode(),
@@ -351,6 +359,7 @@ public class UserManagementService {
             group.getId(),
             group.getCode(),
             group.getName(),
+            disciplineGrade,
             lectureItems
         );
     }
@@ -385,6 +394,7 @@ public class UserManagementService {
                 subject.getId(),
                 subject.getCode(),
                 subject.getName(),
+                calculateDisciplineGrade(student, group, subject),
                 testAssignments.stream().map(assignment -> {
                     if (assignment.getTest().getSubject() == null || !assignment.getTest().getSubject().getId().equals(subject.getId())) {
                         return new UserManagementDtos.StudentGradebookCell("—", null, null, null);
@@ -427,6 +437,24 @@ public class UserManagementService {
             columns,
             rows
         );
+    }
+
+    private Integer calculateDisciplineGrade(AppUser student, GroupEntity group, Subject subject) {
+        List<Lecture> subjectLectures = lectureRepository.findByPublishedTrueAndSubject(subject);
+        List<Integer> lectureGrades = subjectLectures.stream()
+            .map(lecture -> {
+                List<Integer> testGrades = learningTestRepository.findByLectureId(lecture.getId()).stream()
+                    .filter(LearningTest::isPublished)
+                    .filter(test -> testAssignmentRepository.findByGroupAndActiveTrue(group).stream()
+                        .anyMatch(assignment -> assignment.getTest().getId().equals(test.getId())))
+                    .map(test -> latestSubmittedGrade(student, test))
+                    .filter(Objects::nonNull)
+                    .toList();
+                return averageRounded(testGrades);
+            })
+            .filter(Objects::nonNull)
+            .toList();
+        return averageRounded(lectureGrades);
     }
 
     public UserManagementDtos.TeacherDashboardSummary getTeacherDashboardSummary(AppUser teacher) {
@@ -633,5 +661,23 @@ public class UserManagementService {
         if (score >= minScore4) return 4;
         if (score >= minScore3) return 3;
         return 2;
+    }
+
+    private Integer latestSubmittedGrade(AppUser student, LearningTest test) {
+        TestAttempt attempt = testAttemptRepository.findByStudentAndTestOrderByStartedAtDesc(student, test).stream()
+            .filter(item -> item.getStatus() == AttemptStatus.SUBMITTED)
+            .findFirst()
+            .orElse(null);
+        if (attempt == null) {
+            return null;
+        }
+        return resolveGrade(test.getMinScore3(), test.getMinScore4(), test.getMinScore5(), attempt.getScore());
+    }
+
+    private Integer averageRounded(List<Integer> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return (int) Math.round(values.stream().mapToInt(Integer::intValue).average().orElse(0));
     }
 }

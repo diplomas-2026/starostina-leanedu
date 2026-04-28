@@ -11,6 +11,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -492,10 +493,8 @@ public class TestService {
             .toList();
 
         List<TestDtos.GradebookRow> rows = students.stream()
-            .map(student -> new TestDtos.GradebookRow(
-                student.getId(),
-                student.getFullName(),
-                assignments.stream().map(assignment -> {
+            .map(student -> {
+                List<TestDtos.GradebookCell> cells = assignments.stream().map(assignment -> {
                     String key = buildStudentTestKey(student.getId(), assignment.getTest().getId());
                     TestAttempt submittedAttempt = latestSubmittedByStudentAndTest.get(key);
                     if (submittedAttempt != null) {
@@ -514,8 +513,44 @@ public class TestService {
                         return new TestDtos.GradebookCell("Не выполнен", null, null, null);
                     }
                     return new TestDtos.GradebookCell("Не приступал", null, null, null);
-                }).toList()
-            ))
+                }).toList();
+
+                Map<Long, List<Integer>> lectureGrades = new LinkedHashMap<>();
+                for (int i = 0; i < assignments.size(); i++) {
+                    TestAssignment assignment = assignments.get(i);
+                    Integer grade = cells.get(i).grade();
+                    if (grade == null) {
+                        continue;
+                    }
+                    if (assignment.getTest().getLecture() == null) {
+                        continue;
+                    }
+                    lectureGrades.computeIfAbsent(assignment.getTest().getLecture().getId(), ignored -> new ArrayList<>())
+                        .add(grade);
+                }
+                List<TestDtos.GradebookLectureGrade> lectureGradeItems = assignments.stream()
+                    .map(TestAssignment::getTest)
+                    .map(LearningTest::getLecture)
+                    .filter(lecture -> lecture != null && lectureGrades.containsKey(lecture.getId()))
+                    .distinct()
+                    .map(lecture -> new TestDtos.GradebookLectureGrade(
+                        lecture.getId(),
+                        lecture.getTitle(),
+                        averageRounded(lectureGrades.get(lecture.getId()))
+                    ))
+                    .toList();
+                Integer disciplineGrade = averageRounded(
+                    lectureGradeItems.stream().map(TestDtos.GradebookLectureGrade::grade).toList()
+                );
+
+                return new TestDtos.GradebookRow(
+                    student.getId(),
+                    student.getFullName(),
+                    disciplineGrade,
+                    lectureGradeItems,
+                    cells
+                );
+            })
             .toList();
 
         return new TestDtos.GradebookMatrix(
@@ -532,6 +567,13 @@ public class TestService {
 
     private String buildStudentTestKey(Long studentId, Long testId) {
         return studentId + ":" + testId;
+    }
+
+    private Integer averageRounded(List<Integer> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return (int) Math.round(values.stream().mapToInt(Integer::intValue).average().orElse(0));
     }
 
     private int resolveGrade(LearningTest test, int score) {

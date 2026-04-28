@@ -204,6 +204,8 @@ export default function GradebookPage() {
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th miw={260}>Студент</Table.Th>
+                      <Table.Th miw={150}>Итог по дисциплине</Table.Th>
+                      <Table.Th miw={260}>По лекциям</Table.Th>
                       {matrix.columns.map((column) => (
                         <Table.Th key={column.assignmentId} miw={220}>
                           <Stack gap={2}>
@@ -219,6 +221,23 @@ export default function GradebookPage() {
                     {visibleRows.map((row) => (
                       <Table.Tr key={row.studentId}>
                         <Table.Td><Text component={Link} to={`/students/${row.studentId}`}>{row.studentName}</Text></Table.Td>
+                        <Table.Td>
+                          <GradeBadge grade={row.disciplineGrade} prefix="Итог" />
+                        </Table.Td>
+                        <Table.Td>
+                          {row.lectureGrades?.length ? (
+                            <Stack gap={4}>
+                              {row.lectureGrades.map((item) => (
+                                <Stack key={item.lectureId} gap={2}>
+                                  <Text size="xs">{item.lectureTitle}</Text>
+                                  <GradeBadge grade={item.grade} size="xs" prefix="Лекция" />
+                                </Stack>
+                              ))}
+                            </Stack>
+                          ) : (
+                            <Text c="dimmed">—</Text>
+                          )}
+                        </Table.Td>
                         {row.cells.map((cell, index) => (
                           <Table.Td key={`${row.studentId}-${matrix.columns[index].assignmentId}`}>
                             {cell.grade ? (

@@ -143,6 +143,7 @@ export default function StudentGradebookPage() {
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th miw={260}>Дисциплина</Table.Th>
+                      <Table.Th miw={150}>Итог</Table.Th>
                       {visibleData.columns.map((column) => (
                         <Table.Th key={column.assignmentId} miw={220}>
                           <Stack gap={2}>
@@ -162,6 +163,9 @@ export default function StudentGradebookPage() {
                           <Text component={Link} to={`/student/disciplines/${row.subjectId}`} style={{ textDecoration: 'none' }}>
                             {row.subjectCode} — {row.subjectName}
                           </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <GradeBadge grade={row.disciplineGrade} prefix="Итог" />
                         </Table.Td>
                         {row.cells.map((cell, index) => (
                           <Table.Td key={`${row.subjectId}-${visibleData.columns[index].assignmentId}`}>

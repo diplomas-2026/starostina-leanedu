@@ -64,7 +64,7 @@ export default function StudentDisciplinesPage() {
           to={`/student/disciplines/${item.subjectId}`}
           title={`${item.subjectCode} · ${item.subjectName}`}
           subtitle={`Преподаватель: ${item.teacherName}`}
-          meta={`Группа: ${item.groupCode} · ${item.groupName}`}
+          meta={`Группа: ${item.groupCode} · ${item.groupName} · Итог по дисциплине: ${item.disciplineGrade ?? '—'}`}
         />
       ))}
     </Stack>

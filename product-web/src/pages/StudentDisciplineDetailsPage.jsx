@@ -49,6 +49,7 @@ export default function StudentDisciplineDetailsPage() {
     <Stack>
       <Title order={2}>{details?.subjectCode} · {details?.subjectName}</Title>
       <Text c="dimmed">Преподаватель: {details?.teacherName} · Группа: {details?.groupCode}</Text>
+      <GradeBadge grade={details?.disciplineGrade} prefix="Итог по дисциплине" />
       <ListControls
         search={search}
         onSearchChange={setSearch}

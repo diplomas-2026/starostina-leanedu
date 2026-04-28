@@ -37,7 +37,8 @@ public class UserManagementDtos {
         String teacherName,
         Long groupId,
         String groupCode,
-        String groupName
+        String groupName,
+        Integer disciplineGrade
     ) {}
     public record StudentLectureTestItem(
         Long testId,
@@ -63,11 +64,12 @@ public class UserManagementDtos {
         Long groupId,
         String groupCode,
         String groupName,
+        Integer disciplineGrade,
         List<StudentLectureProgressItem> lectures
     ) {}
     public record StudentGradebookColumn(Long assignmentId, Long testId, String testTitle, String subjectCode, String subjectName, String dueAt) {}
     public record StudentGradebookCell(String status, Integer score, Integer maxScore, Integer grade) {}
-    public record StudentGradebookRow(Long subjectId, String subjectCode, String subjectName, List<StudentGradebookCell> cells) {}
+    public record StudentGradebookRow(Long subjectId, String subjectCode, String subjectName, Integer disciplineGrade, List<StudentGradebookCell> cells) {}
     public record StudentGradebookMatrix(
         Long studentId,
         String studentName,

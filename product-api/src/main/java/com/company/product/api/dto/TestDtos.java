@@ -44,7 +44,14 @@ public class TestDtos {
     public record GradebookSubjectOption(Long id, String code, String name) {}
     public record GradebookColumn(Long assignmentId, String testTitle, OffsetDateTime dueAt) {}
     public record GradebookCell(String status, Integer score, Integer maxScore, Integer grade) {}
-    public record GradebookRow(Long studentId, String studentName, List<GradebookCell> cells) {}
+    public record GradebookLectureGrade(Long lectureId, String lectureTitle, Integer grade) {}
+    public record GradebookRow(
+        Long studentId,
+        String studentName,
+        Integer disciplineGrade,
+        List<GradebookLectureGrade> lectureGrades,
+        List<GradebookCell> cells
+    ) {}
     public record GradebookMatrix(
         Long groupId,
         String groupCode,

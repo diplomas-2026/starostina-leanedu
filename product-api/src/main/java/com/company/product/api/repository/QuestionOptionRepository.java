@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface QuestionOptionRepository extends JpaRepository<QuestionOption, Long> {
     List<QuestionOption> findByQuestion(Question question);
+    List<QuestionOption> findByQuestionOrderByIdAsc(Question question);
 }

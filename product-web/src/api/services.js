@@ -14,6 +14,7 @@ export const lectureApi = {
 
 export const testApi = {
   list: () => api.get('/api/tests'),
+  get: (id) => api.get(`/api/tests/${id}`),
   create: (payload) => api.post('/api/tests', payload),
   publish: (id) => api.patch(`/api/tests/${id}/publish`),
   addQuestion: (id, payload) => api.post(`/api/tests/${id}/questions`, payload),

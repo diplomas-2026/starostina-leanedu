@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import LecturesPage from './pages/LecturesPage';
 import LectureDetailsPage from './pages/LectureDetailsPage';
 import TestsPage from './pages/TestsPage';
+import TestDetailsPage from './pages/TestDetailsPage';
 import MyResultsPage from './pages/MyResultsPage';
 import AdminTeachersPage from './pages/AdminTeachersPage';
 import TeacherStudentsPage from './pages/TeacherStudentsPage';
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/my-results" element={<MyResultsPage />} />
 
           <Route element={<ProtectedRoute roles={['TEACHER']} />}>
+            <Route path="/tests/:id" element={<TestDetailsPage />} />
             <Route path="/gradebook" element={<GradebookPage />} />
             <Route path="/teacher/students" element={<TeacherStudentsPage />} />
           </Route>

@@ -1,5 +1,6 @@
 import { Alert, Button, Card, Group, Loader, NumberInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
@@ -157,7 +158,12 @@ export default function TestsPage() {
             {user?.role === 'STUDENT' ? (
               <Button onClick={() => startAttempt(test.id)}>Начать</Button>
             ) : (
-              <Text size="sm">{publishStatusLabel(test.published)}</Text>
+              <Stack align="end" gap={8}>
+                <Text size="sm">{publishStatusLabel(test.published)}</Text>
+                <Button component={Link} to={`/tests/${test.id}`} variant="light" size="xs">
+                  Открыть
+                </Button>
+              </Stack>
             )}
           </Group>
         </Card>

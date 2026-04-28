@@ -52,6 +52,36 @@ public class TestService {
         return tests.stream().map(this::toTestItem).toList();
     }
 
+    public TestDtos.TestDetailsItem getTestDetails(Long testId) {
+        LearningTest test = getTestOrThrow(testId);
+        List<Question> questions = questionRepository.findByTestOrderBySortOrderAsc(test);
+
+        List<TestDtos.TestQuestionItem> questionItems = questions.stream()
+            .map(question -> new TestDtos.TestQuestionItem(
+                question.getId(),
+                question.getText(),
+                question.getPoints(),
+                question.getSortOrder(),
+                questionOptionRepository.findByQuestionOrderByIdAsc(question).stream()
+                    .map(option -> new TestDtos.TestOptionItem(option.getId(), option.getText(), option.isCorrect()))
+                    .toList()
+            ))
+            .toList();
+
+        return new TestDtos.TestDetailsItem(
+            test.getId(),
+            test.getTitle(),
+            test.getDescription(),
+            test.isPublished(),
+            test.getTimeLimitMin(),
+            test.getAttemptsLimit(),
+            test.getMinScore3(),
+            test.getMinScore4(),
+            test.getMinScore5(),
+            questionItems
+        );
+    }
+
     public void publishTest(Long testId) {
         LearningTest test = getTestOrThrow(testId);
         test.setPublished(true);

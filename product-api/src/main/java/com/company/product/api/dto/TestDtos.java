@@ -40,4 +40,18 @@ public class TestDtos {
     public record GradebookCell(String status, Integer score, Integer maxScore, Integer grade) {}
     public record GradebookRow(Long studentId, String studentName, List<GradebookCell> cells) {}
     public record GradebookMatrix(Long groupId, String groupCode, String groupName, List<GradebookColumn> columns, List<GradebookRow> rows) {}
+    public record TestOptionItem(Long id, String text, boolean correct) {}
+    public record TestQuestionItem(Long id, String text, Integer points, Integer sortOrder, List<TestOptionItem> options) {}
+    public record TestDetailsItem(
+        Long id,
+        String title,
+        String description,
+        boolean published,
+        Integer timeLimitMin,
+        Integer attemptsLimit,
+        Integer minScore3,
+        Integer minScore4,
+        Integer minScore5,
+        List<TestQuestionItem> questions
+    ) {}
 }

@@ -23,6 +23,12 @@ public class TestController {
         return testService.listTests(currentUserService.requireCurrentUser());
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")
+    public TestDtos.TestDetailsItem details(@PathVariable Long id) {
+        return testService.getTestDetails(id);
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('TEACHER')")
     public TestDtos.TestItem create(@Valid @RequestBody TestDtos.CreateTestRequest request) {

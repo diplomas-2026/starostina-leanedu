@@ -81,6 +81,9 @@ public class SeedService {
             test.setPublished(true);
             test.setTimeLimitMin(20);
             test.setAttemptsLimit(3);
+            test.setMinScore3(2);
+            test.setMinScore4(3);
+            test.setMinScore5(4);
             test.setCreatedBy(teacher);
             test = learningTestRepository.save(test);
 

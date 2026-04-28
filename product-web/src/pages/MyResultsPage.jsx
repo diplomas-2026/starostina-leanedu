@@ -34,6 +34,7 @@ export default function MyResultsPage() {
         <Card key={it.id} withBorder>
           <Text fw={600}>{it.testTitle}</Text>
           <Text>Баллы: {it.score} / {it.maxScore}</Text>
+          {it.grade ? <Text>Оценка: {it.grade}</Text> : null}
           <Text size="sm" c="dimmed">Статус: {attemptStatusLabel(it.status)}</Text>
         </Card>
       ))}

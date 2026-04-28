@@ -32,6 +32,15 @@ public class LearningTest {
     @Column(nullable = false)
     private Integer attemptsLimit;
 
+    @Column(name = "min_score_3", nullable = false)
+    private Integer minScore3;
+
+    @Column(name = "min_score_4", nullable = false)
+    private Integer minScore4;
+
+    @Column(name = "min_score_5", nullable = false)
+    private Integer minScore5;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "created_by")
     private AppUser createdBy;

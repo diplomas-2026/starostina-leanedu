@@ -111,6 +111,9 @@ public class AiService {
         test.setPublished(false);
         test.setTimeLimitMin(20);
         test.setAttemptsLimit(3);
+        test.setMinScore3(5);
+        test.setMinScore4(7);
+        test.setMinScore5(9);
         test.setCreatedBy(user);
         test = learningTestRepository.save(test);
 

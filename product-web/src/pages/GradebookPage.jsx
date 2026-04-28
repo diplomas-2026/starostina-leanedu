@@ -120,12 +120,20 @@ export default function GradebookPage() {
                         <Table.Td>{row.studentName}</Table.Td>
                         {row.cells.map((cell, index) => (
                           <Table.Td key={`${row.studentId}-${matrix.columns[index].assignmentId}`}>
-                            {cell.status === 'Оценено' ? (
-                              <Badge color="teal" variant="light">
-                                {cell.score} / {cell.maxScore}
-                              </Badge>
+                            {cell.grade ? (
+                              <Stack gap={4}>
+                                <Badge color="teal" variant="light">
+                                  Оценка: {cell.grade}
+                                </Badge>
+                                <Text size="xs" c="dimmed">
+                                  Баллы: {cell.score} / {cell.maxScore}
+                                </Text>
+                              </Stack>
                             ) : (
-                              <Badge color={cell.status === 'Просрочено' ? 'red' : 'gray'} variant="light">
+                              <Badge
+                                color={cell.status === 'Не выполнен' ? 'red' : cell.status === 'В процессе' ? 'yellow' : 'gray'}
+                                variant="light"
+                              >
                                 {cell.status}
                               </Badge>
                             )}

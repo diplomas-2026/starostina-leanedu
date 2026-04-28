@@ -28,12 +28,17 @@ public class TestService {
     private final AttemptAnswerRepository attemptAnswerRepository;
 
     public TestDtos.TestItem createTest(TestDtos.CreateTestRequest request, AppUser teacher) {
+        validateThresholds(request.minScore3(), request.minScore4(), request.minScore5());
+
         LearningTest test = new LearningTest();
         test.setTitle(request.title());
         test.setDescription(request.description());
         test.setPublished(false);
         test.setTimeLimitMin(request.timeLimitMin());
         test.setAttemptsLimit(request.attemptsLimit());
+        test.setMinScore3(request.minScore3());
+        test.setMinScore4(request.minScore4());
+        test.setMinScore5(request.minScore5());
         test.setCreatedBy(teacher);
         if (request.lectureId() != null) {
             test.setLecture(lectureRepository.findById(request.lectureId())
@@ -108,7 +113,7 @@ public class TestService {
         attempt.setMaxScore(0);
         attempt = testAttemptRepository.save(attempt);
 
-        return new TestDtos.AttemptItem(attempt.getId(), test.getId(), test.getTitle(), 0, 0, attempt.getStatus().name());
+        return new TestDtos.AttemptItem(attempt.getId(), test.getId(), test.getTitle(), 0, 0, null, attempt.getStatus().name());
     }
 
     public TestDtos.AttemptItem submitAttempt(Long attemptId, TestDtos.SubmitAttemptRequest request, AppUser student) {
@@ -151,6 +156,7 @@ public class TestService {
         attempt.setStatus(AttemptStatus.SUBMITTED);
         attempt.setSubmittedAt(OffsetDateTime.now());
         attempt = testAttemptRepository.save(attempt);
+        int grade = resolveGrade(attempt.getTest(), attempt.getScore());
 
         return new TestDtos.AttemptItem(
             attempt.getId(),
@@ -158,13 +164,22 @@ public class TestService {
             attempt.getTest().getTitle(),
             attempt.getScore(),
             attempt.getMaxScore(),
+            grade,
             attempt.getStatus().name()
         );
     }
 
     public List<TestDtos.AttemptItem> listMyAttempts(AppUser student) {
         return testAttemptRepository.findByStudentOrderByStartedAtDesc(student).stream()
-            .map(a -> new TestDtos.AttemptItem(a.getId(), a.getTest().getId(), a.getTest().getTitle(), a.getScore(), a.getMaxScore(), a.getStatus().name()))
+            .map(a -> new TestDtos.AttemptItem(
+                a.getId(),
+                a.getTest().getId(),
+                a.getTest().getTitle(),
+                a.getScore(),
+                a.getMaxScore(),
+                a.getStatus() == AttemptStatus.SUBMITTED ? resolveGrade(a.getTest(), a.getScore()) : null,
+                a.getStatus().name()
+            ))
             .toList();
     }
 
@@ -206,12 +221,20 @@ public class TestService {
             .toList();
 
         Map<String, TestAttempt> latestSubmittedByStudentAndTest = new HashMap<>();
+        Map<String, TestAttempt> latestInProgressByStudentAndTest = new HashMap<>();
         if (!students.isEmpty() && !tests.isEmpty()) {
             List<TestAttempt> submittedAttempts = testAttemptRepository
                 .findByStudentInAndTestInAndStatusOrderBySubmittedAtDesc(students, tests, AttemptStatus.SUBMITTED);
             for (TestAttempt attempt : submittedAttempts) {
                 String key = buildStudentTestKey(attempt.getStudent().getId(), attempt.getTest().getId());
                 latestSubmittedByStudentAndTest.putIfAbsent(key, attempt);
+            }
+
+            List<TestAttempt> inProgressAttempts = testAttemptRepository
+                .findByStudentInAndTestInAndStatusOrderByStartedAtDesc(students, tests, AttemptStatus.IN_PROGRESS);
+            for (TestAttempt attempt : inProgressAttempts) {
+                String key = buildStudentTestKey(attempt.getStudent().getId(), attempt.getTest().getId());
+                latestInProgressByStudentAndTest.putIfAbsent(key, attempt);
             }
         }
 
@@ -224,14 +247,24 @@ public class TestService {
                 student.getId(),
                 student.getFullName(),
                 assignments.stream().map(assignment -> {
-                    TestAttempt attempt = latestSubmittedByStudentAndTest.get(buildStudentTestKey(student.getId(), assignment.getTest().getId()));
-                    if (attempt != null) {
-                        return new TestDtos.GradebookCell("Оценено", attempt.getScore(), attempt.getMaxScore());
+                    String key = buildStudentTestKey(student.getId(), assignment.getTest().getId());
+                    TestAttempt submittedAttempt = latestSubmittedByStudentAndTest.get(key);
+                    if (submittedAttempt != null) {
+                        return new TestDtos.GradebookCell(
+                            "Оценено",
+                            submittedAttempt.getScore(),
+                            submittedAttempt.getMaxScore(),
+                            resolveGrade(submittedAttempt.getTest(), submittedAttempt.getScore())
+                        );
+                    }
+
+                    if (latestInProgressByStudentAndTest.containsKey(key)) {
+                        return new TestDtos.GradebookCell("В процессе", null, null, null);
                     }
                     if (assignment.getDueAt() != null && OffsetDateTime.now().isAfter(assignment.getDueAt())) {
-                        return new TestDtos.GradebookCell("Просрочено", null, null);
+                        return new TestDtos.GradebookCell("Не выполнен", null, null, null);
                     }
-                    return new TestDtos.GradebookCell("Не сдано", null, null);
+                    return new TestDtos.GradebookCell("Не приступал", null, null, null);
                 }).toList()
             ))
             .toList();
@@ -243,12 +276,39 @@ public class TestService {
         return studentId + ":" + testId;
     }
 
+    private int resolveGrade(LearningTest test, int score) {
+        if (score >= test.getMinScore5()) {
+            return 5;
+        }
+        if (score >= test.getMinScore4()) {
+            return 4;
+        }
+        if (score >= test.getMinScore3()) {
+            return 3;
+        }
+        return 2;
+    }
+
+    private void validateThresholds(int minScore3, int minScore4, int minScore5) {
+        if (!(minScore3 <= minScore4 && minScore4 <= minScore5)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Пороги должны удовлетворять условию: 3 <= 4 <= 5");
+        }
+    }
+
     private LearningTest getTestOrThrow(Long testId) {
         return learningTestRepository.findById(testId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Тест не найден"));
     }
 
     private TestDtos.TestItem toTestItem(LearningTest test) {
-        return new TestDtos.TestItem(test.getId(), test.getTitle(), test.getDescription(), test.isPublished());
+        return new TestDtos.TestItem(
+            test.getId(),
+            test.getTitle(),
+            test.getDescription(),
+            test.isPublished(),
+            test.getMinScore3(),
+            test.getMinScore4(),
+            test.getMinScore5()
+        );
     }
 }

@@ -22,6 +22,16 @@ public class AdminController {
         return userManagementService.createTeacher(request);
     }
 
+    @PutMapping("/users/{userId}")
+    public UserManagementDtos.UserItem updateUser(@PathVariable Long userId, @Valid @RequestBody UserManagementDtos.UpdateUserRequest request) {
+        return userManagementService.updateUser(userId, request);
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public void deactivateUser(@PathVariable Long userId) {
+        userManagementService.deactivateUser(userId);
+    }
+
     @GetMapping("/users")
     public List<UserManagementDtos.UserItem> listUsers(@RequestParam(required = false) Role role) {
         return userManagementService.listUsers(role);
@@ -42,6 +52,16 @@ public class AdminController {
         return userManagementService.createSubject(request);
     }
 
+    @PutMapping("/subjects/{subjectId}")
+    public UserManagementDtos.SubjectItem updateSubject(@PathVariable Long subjectId, @Valid @RequestBody UserManagementDtos.UpdateSubjectRequest request) {
+        return userManagementService.updateSubject(subjectId, request);
+    }
+
+    @DeleteMapping("/subjects/{subjectId}")
+    public void deleteSubject(@PathVariable Long subjectId) {
+        userManagementService.deleteSubject(subjectId);
+    }
+
     @GetMapping("/subjects")
     public List<UserManagementDtos.SubjectItem> listSubjects() {
         return userManagementService.listSubjects();
@@ -57,9 +77,19 @@ public class AdminController {
         return userManagementService.listTeachingAssignments();
     }
 
+    @DeleteMapping("/teaching-assignments/{assignmentId}")
+    public void deleteTeachingAssignment(@PathVariable Long assignmentId) {
+        userManagementService.deleteTeachingAssignment(assignmentId);
+    }
+
     @PostMapping("/groups/{groupId}/students/{studentId}")
     public void addStudentToGroup(@PathVariable Long groupId, @PathVariable Long studentId) {
         userManagementService.addStudentToGroup(groupId, studentId);
+    }
+
+    @DeleteMapping("/groups/{groupId}/students/{studentId}")
+    public void removeStudentFromGroup(@PathVariable Long groupId, @PathVariable Long studentId) {
+        userManagementService.removeStudentFromGroup(groupId, studentId);
     }
 
     @GetMapping("/groups/{groupId}/students")

@@ -144,6 +144,47 @@ export default function AdminTeachersPage() {
     }
   };
 
+  const editUser = async (user) => {
+    const fullName = window.prompt('Введите ФИО', user.fullName);
+    if (fullName === null) return;
+    const email = window.prompt('Введите Email', user.email);
+    if (email === null) return;
+    const password = window.prompt('Новый пароль (можно оставить пустым, чтобы не менять)', '');
+    setSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await adminApi.updateUser(user.id, {
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password: password || null,
+      });
+      setMessage('Пользователь обновлен');
+      await load();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось обновить пользователя'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deactivateUser = async (user) => {
+    const confirmed = window.confirm(`Деактивировать пользователя ${user.fullName}?`);
+    if (!confirmed) return;
+    setSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await adminApi.deactivateUser(user.id);
+      setMessage('Пользователь деактивирован');
+      await load();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось деактивировать пользователя'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const submitStudent = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -178,6 +219,42 @@ export default function AdminTeachersPage() {
     }
   };
 
+  const editSubject = async (subject) => {
+    const code = window.prompt('Код дисциплины', subject.code);
+    if (code === null) return;
+    const name = window.prompt('Название дисциплины', subject.name);
+    if (name === null) return;
+    setSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await adminApi.updateSubject(subject.id, { code: code.trim(), name: name.trim() });
+      setMessage('Дисциплина обновлена');
+      await load();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось обновить дисциплину'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteSubject = async (subject) => {
+    const confirmed = window.confirm(`Удалить дисциплину ${subject.code} — ${subject.name}?`);
+    if (!confirmed) return;
+    setSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await adminApi.deleteSubject(subject.id);
+      setMessage('Дисциплина удалена');
+      await load();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось удалить дисциплину'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const submitAssignment = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -198,6 +275,23 @@ export default function AdminTeachersPage() {
     }
   };
 
+  const deleteAssignment = async (assignment) => {
+    const confirmed = window.confirm(`Удалить назначение: ${assignment.teacherName} / ${assignment.subjectName} / ${assignment.groupCode}?`);
+    if (!confirmed) return;
+    setSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await adminApi.deleteTeachingAssignment(assignment.id);
+      setMessage('Назначение удалено');
+      await load();
+    } catch (err) {
+      setError(extractError(err, 'Не удалось удалить назначение'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const submitStudentGroup = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -209,6 +303,25 @@ export default function AdminTeachersPage() {
       await loadGroupStudents(studentGroupForm.groupId);
     } catch (err) {
       setError(extractError(err, 'Не удалось добавить студента в группу'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeStudentFromGroup = async (student) => {
+    if (!selectedGroupId) return;
+    const confirmed = window.confirm(`Удалить студента ${student.fullName} из группы?`);
+    if (!confirmed) return;
+    setSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await adminApi.removeStudentFromGroup(selectedGroupId, student.id);
+      setMessage('Студент удален из группы');
+      await load();
+      await loadGroupStudents(selectedGroupId);
+    } catch (err) {
+      setError(extractError(err, 'Не удалось удалить студента из группы'));
     } finally {
       setSaving(false);
     }
@@ -248,7 +361,7 @@ export default function AdminTeachersPage() {
             />
             <Table striped>
               <Table.Thead>
-                <Table.Tr><Table.Th>ФИО</Table.Th><Table.Th>Email</Table.Th></Table.Tr>
+                <Table.Tr><Table.Th>ФИО</Table.Th><Table.Th>Email</Table.Th><Table.Th>Статус</Table.Th><Table.Th>Действия</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {visibleTeachers.map((teacher) => (
@@ -260,6 +373,13 @@ export default function AdminTeachersPage() {
                       </Group>
                     </Table.Td>
                     <Table.Td>{teacher.email}</Table.Td>
+                    <Table.Td>{teacher.active ? 'Активен' : 'Деактивирован'}</Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
+                        <Button size="xs" variant="light" onClick={() => editUser(teacher)} loading={saving} disabled={!teacher.active}>Редактировать</Button>
+                        <Button size="xs" color="red" variant="light" onClick={() => deactivateUser(teacher)} loading={saving} disabled={!teacher.active}>Удалить</Button>
+                      </Group>
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
@@ -314,7 +434,7 @@ export default function AdminTeachersPage() {
             />
             <Table striped>
               <Table.Thead>
-                <Table.Tr><Table.Th>ID</Table.Th><Table.Th>ФИО</Table.Th><Table.Th>Email</Table.Th></Table.Tr>
+                <Table.Tr><Table.Th>ID</Table.Th><Table.Th>ФИО</Table.Th><Table.Th>Email</Table.Th><Table.Th>Статус</Table.Th><Table.Th>Действия</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {visibleGroupStudents.map((student) => (
@@ -327,6 +447,14 @@ export default function AdminTeachersPage() {
                       </Group>
                     </Table.Td>
                     <Table.Td>{student.email}</Table.Td>
+                    <Table.Td>{student.active ? 'Активен' : 'Деактивирован'}</Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
+                        <Button size="xs" variant="light" onClick={() => editUser(student)} loading={saving} disabled={!student.active}>Редактировать</Button>
+                        <Button size="xs" color="orange" variant="light" onClick={() => removeStudentFromGroup(student)} loading={saving} disabled={!student.active}>Убрать из группы</Button>
+                        <Button size="xs" color="red" variant="light" onClick={() => deactivateUser(student)} loading={saving} disabled={!student.active}>Удалить</Button>
+                      </Group>
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
@@ -352,11 +480,20 @@ export default function AdminTeachersPage() {
             />
             <Table striped>
               <Table.Thead>
-                <Table.Tr><Table.Th>Код</Table.Th><Table.Th>Название</Table.Th></Table.Tr>
+                <Table.Tr><Table.Th>Код</Table.Th><Table.Th>Название</Table.Th><Table.Th>Действия</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {visibleSubjects.map((subject) => (
-                  <Table.Tr key={subject.id}><Table.Td>{subject.code}</Table.Td><Table.Td>{subject.name}</Table.Td></Table.Tr>
+                  <Table.Tr key={subject.id}>
+                    <Table.Td>{subject.code}</Table.Td>
+                    <Table.Td>{subject.name}</Table.Td>
+                    <Table.Td>
+                      <Group gap="xs">
+                        <Button size="xs" variant="light" onClick={() => editSubject(subject)} loading={saving}>Редактировать</Button>
+                        <Button size="xs" color="red" variant="light" onClick={() => deleteSubject(subject)} loading={saving}>Удалить</Button>
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
                 ))}
               </Table.Tbody>
             </Table>
@@ -387,7 +524,7 @@ export default function AdminTeachersPage() {
             />
             <Table striped>
               <Table.Thead>
-                <Table.Tr><Table.Th>Преподаватель</Table.Th><Table.Th>Дисциплина</Table.Th><Table.Th>Группа</Table.Th></Table.Tr>
+                <Table.Tr><Table.Th>Преподаватель</Table.Th><Table.Th>Дисциплина</Table.Th><Table.Th>Группа</Table.Th><Table.Th>Действия</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {visibleAssignments.map((assignment) => (
@@ -398,6 +535,11 @@ export default function AdminTeachersPage() {
                       <Text component={Link} to={`/groups/${assignment.groupId}`}>
                         {assignment.groupCode} — {assignment.groupName}
                       </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Button size="xs" color="red" variant="light" onClick={() => deleteAssignment(assignment)} loading={saving}>
+                        Удалить
+                      </Button>
                     </Table.Td>
                   </Table.Tr>
                 ))}

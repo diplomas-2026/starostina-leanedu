@@ -10,5 +10,7 @@ import java.util.List;
 public interface GroupStudentRepository extends JpaRepository<GroupStudent, Long> {
     List<GroupStudent> findByGroup(GroupEntity group);
     List<GroupStudent> findByStudent(AppUser student);
+    void deleteByStudent(AppUser student);
+    void deleteByGroupAndStudent(GroupEntity group, AppUser student);
     boolean existsByGroupAndStudent(GroupEntity group, AppUser student);
 }

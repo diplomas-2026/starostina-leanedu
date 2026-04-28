@@ -13,6 +13,9 @@ public interface TeachingAssignmentRepository extends JpaRepository<TeachingAssi
     List<TeachingAssignment> findByGroup(GroupEntity group);
     List<TeachingAssignment> findByTeacherAndGroup(AppUser teacher, GroupEntity group);
     List<TeachingAssignment> findByTeacherAndSubject(AppUser teacher, Subject subject);
+    long countBySubject(Subject subject);
+    void deleteByTeacher(AppUser teacher);
+    void deleteBySubject(Subject subject);
     boolean existsByTeacherAndGroup(AppUser teacher, GroupEntity group);
     boolean existsByTeacherAndGroupAndSubject(AppUser teacher, GroupEntity group, Subject subject);
 }

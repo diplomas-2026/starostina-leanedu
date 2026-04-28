@@ -11,4 +11,5 @@ public interface LectureRepository extends JpaRepository<Lecture, Long> {
     List<Lecture> findByPublishedTrue();
     List<Lecture> findByCreatedBy(AppUser user);
     List<Lecture> findByPublishedTrueAndSubject(Subject subject);
+    long countBySubject(Subject subject);
 }

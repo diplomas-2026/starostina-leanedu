@@ -46,14 +46,20 @@ export const teacherApi = {
 export const adminApi = {
   createTeacher: (payload) => api.post('/api/admin/teachers', payload),
   createStudent: (payload) => api.post('/api/admin/students', payload),
+  updateUser: (userId, payload) => api.put(`/api/admin/users/${userId}`, payload),
+  deactivateUser: (userId) => api.delete(`/api/admin/users/${userId}`),
   users: (role) => api.get('/api/admin/users', { params: role ? { role } : {} }),
   groups: () => api.get('/api/admin/groups'),
   groupStudents: (groupId) => api.get(`/api/admin/groups/${groupId}/students`),
   addStudentToGroup: (groupId, studentId) => api.post(`/api/admin/groups/${groupId}/students/${studentId}`),
+  removeStudentFromGroup: (groupId, studentId) => api.delete(`/api/admin/groups/${groupId}/students/${studentId}`),
   subjects: () => api.get('/api/admin/subjects'),
   createSubject: (payload) => api.post('/api/admin/subjects', payload),
+  updateSubject: (subjectId, payload) => api.put(`/api/admin/subjects/${subjectId}`, payload),
+  deleteSubject: (subjectId) => api.delete(`/api/admin/subjects/${subjectId}`),
   teachingAssignments: () => api.get('/api/admin/teaching-assignments'),
   createTeachingAssignment: (payload) => api.post('/api/admin/teaching-assignments', payload),
+  deleteTeachingAssignment: (assignmentId) => api.delete(`/api/admin/teaching-assignments/${assignmentId}`),
 };
 
 export const aiApi = {

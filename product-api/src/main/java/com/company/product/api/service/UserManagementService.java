@@ -55,6 +55,38 @@ public class UserManagementService {
         return createUser(request.email(), request.fullName(), request.password(), Role.STUDENT);
     }
 
+    public UserManagementDtos.UserItem updateUser(Long userId, UserManagementDtos.UpdateUserRequest request) {
+        AppUser user = appUserRepository.findById(userId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
+        appUserRepository.findByEmailIgnoreCase(request.email())
+            .filter(existing -> !existing.getId().equals(user.getId()))
+            .ifPresent(existing -> {
+                throw new ApiException(HttpStatus.CONFLICT, "Пользователь с таким email уже существует");
+            });
+        user.setEmail(request.email().toLowerCase().trim());
+        user.setFullName(request.fullName().trim());
+        if (request.password() != null && !request.password().isBlank()) {
+            user.setPasswordHash(passwordEncoder.encode(request.password()));
+        }
+        return toItem(appUserRepository.save(user));
+    }
+
+    public void deactivateUser(Long userId) {
+        AppUser user = appUserRepository.findById(userId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
+        if (user.getRole() == Role.ADMIN) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Удаление администратора запрещено");
+        }
+        if (user.getRole() == Role.TEACHER) {
+            teachingAssignmentRepository.deleteByTeacher(user);
+        }
+        if (user.getRole() == Role.STUDENT) {
+            groupStudentRepository.deleteByStudent(user);
+        }
+        user.setActive(false);
+        appUserRepository.save(user);
+    }
+
     public void addStudentToGroup(Long groupId, Long studentId) {
         GroupEntity group = groupRepository.findById(groupId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
@@ -108,6 +140,32 @@ public class UserManagementService {
         subject.setCode(request.code().trim());
         subject.setName(request.name().trim());
         return toSubjectItem(subjectRepository.save(subject));
+    }
+
+    public UserManagementDtos.SubjectItem updateSubject(Long subjectId, UserManagementDtos.UpdateSubjectRequest request) {
+        Subject subject = subjectRepository.findById(subjectId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Дисциплина не найдена"));
+        subjectRepository.findByCodeIgnoreCase(request.code())
+            .filter(existing -> !existing.getId().equals(subject.getId()))
+            .ifPresent(existing -> {
+                throw new ApiException(HttpStatus.CONFLICT, "Дисциплина с таким кодом уже существует");
+            });
+        subject.setCode(request.code().trim());
+        subject.setName(request.name().trim());
+        return toSubjectItem(subjectRepository.save(subject));
+    }
+
+    public void deleteSubject(Long subjectId) {
+        Subject subject = subjectRepository.findById(subjectId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Дисциплина не найдена"));
+        long usedInLectures = lectureRepository.countBySubject(subject);
+        long usedInTests = learningTestRepository.countBySubject(subject);
+        long usedInAssignments = testAssignmentRepository.countByTestSubject(subject);
+        if (usedInLectures > 0 || usedInTests > 0 || usedInAssignments > 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "Нельзя удалить дисциплину, потому что она уже используется в лекциях или тестах");
+        }
+        teachingAssignmentRepository.deleteBySubject(subject);
+        subjectRepository.delete(subject);
     }
 
     public List<UserManagementDtos.SubjectItem> listSubjects() {
@@ -602,6 +660,21 @@ public class UserManagementService {
         return toTeachingAssignmentItem(teachingAssignmentRepository.save(assignment));
     }
 
+    public void deleteTeachingAssignment(Long assignmentId) {
+        TeachingAssignment assignment = teachingAssignmentRepository.findById(assignmentId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Назначение не найдено"));
+        teachingAssignmentRepository.delete(assignment);
+    }
+
+    public void removeStudentFromGroup(Long groupId, Long studentId) {
+        GroupEntity group = groupRepository.findById(groupId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+        AppUser student = appUserRepository.findById(studentId)
+            .filter(user -> user.getRole() == Role.STUDENT)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Студент не найден"));
+        groupStudentRepository.deleteByGroupAndStudent(group, student);
+    }
+
     public List<UserManagementDtos.TeachingAssignmentItem> listTeachingAssignments() {
         return teachingAssignmentRepository.findAll().stream()
             .sorted(Comparator
@@ -626,7 +699,7 @@ public class UserManagementService {
     }
 
     private UserManagementDtos.UserItem toItem(AppUser user) {
-        return new UserManagementDtos.UserItem(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getAvatarUrl());
+        return new UserManagementDtos.UserItem(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getAvatarUrl(), user.isActive());
     }
 
     private UserManagementDtos.SubjectItem toSubjectItem(Subject subject) {

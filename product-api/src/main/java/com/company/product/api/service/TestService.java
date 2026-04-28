@@ -353,13 +353,16 @@ public class TestService {
             .sorted(Comparator.comparing(AppUser::getFullName, String::compareToIgnoreCase))
             .toList();
 
-        List<TestAssignment> assignments = testAssignmentRepository.findByGroupAndTestSubjectAndActiveTrueOrderByDueAtAsc(group, subject);
+        List<TestAssignment> allAssignments = testAssignmentRepository.findByGroupAndTestSubjectAndActiveTrueOrderByDueAtAsc(group, subject);
+        List<TestAssignment> scopedAssignments = allAssignments;
         if (user.getRole() == Role.TEACHER) {
-            assignments = assignments.stream()
+            scopedAssignments = allAssignments.stream()
                 .filter(assignment -> assignment.getTest().getCreatedBy() != null
                     && assignment.getTest().getCreatedBy().getId().equals(user.getId()))
                 .toList();
         }
+        final List<TestAssignment> assignments = scopedAssignments;
+
         List<LearningTest> tests = assignments.stream()
             .map(TestAssignment::getTest)
             .distinct()

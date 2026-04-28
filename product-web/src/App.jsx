@@ -14,7 +14,15 @@ import StudentDisciplinesPage from './pages/StudentDisciplinesPage';
 import StudentDisciplineDetailsPage from './pages/StudentDisciplineDetailsPage';
 import StudentGradebookPage from './pages/StudentGradebookPage';
 import MyResultsPage from './pages/MyResultsPage';
-import AdminTeachersPage from './pages/AdminTeachersPage';
+import AdminTeachersListPage from './pages/AdminTeachersListPage';
+import AdminTeacherFormPage from './pages/AdminTeacherFormPage';
+import AdminStudentsListPage from './pages/AdminStudentsListPage';
+import AdminStudentFormPage from './pages/AdminStudentFormPage';
+import AdminSubjectsListPage from './pages/AdminSubjectsListPage';
+import AdminSubjectFormPage from './pages/AdminSubjectFormPage';
+import AdminAssignmentsPage from './pages/AdminAssignmentsPage';
+import AdminGroupsListPage from './pages/AdminGroupsListPage';
+import AdminGroupFormPage from './pages/AdminGroupFormPage';
 import TeacherGroupsPage from './pages/TeacherGroupsPage';
 import GradebookPage from './pages/GradebookPage';
 import TeacherDisciplinesPage from './pages/TeacherDisciplinesPage';
@@ -54,7 +62,19 @@ export default function App() {
           </Route>
 
           <Route element={<ProtectedRoute roles={['ADMIN']} />}>
-            <Route path="/admin/teachers" element={<AdminTeachersPage />} />
+            <Route path="/admin/teachers" element={<AdminTeachersListPage />} />
+            <Route path="/admin/teachers/new" element={<AdminTeacherFormPage />} />
+            <Route path="/admin/teachers/:id/edit" element={<AdminTeacherFormPage />} />
+            <Route path="/admin/students" element={<AdminStudentsListPage />} />
+            <Route path="/admin/students/new" element={<AdminStudentFormPage />} />
+            <Route path="/admin/students/:id/edit" element={<AdminStudentFormPage />} />
+            <Route path="/admin/subjects" element={<AdminSubjectsListPage />} />
+            <Route path="/admin/subjects/new" element={<AdminSubjectFormPage />} />
+            <Route path="/admin/subjects/:id/edit" element={<AdminSubjectFormPage />} />
+            <Route path="/admin/assignments" element={<AdminAssignmentsPage />} />
+            <Route path="/admin/groups" element={<AdminGroupsListPage />} />
+            <Route path="/admin/groups/new" element={<AdminGroupFormPage />} />
+            <Route path="/admin/groups/:id/edit" element={<AdminGroupFormPage />} />
           </Route>
         </Route>
       </Route>

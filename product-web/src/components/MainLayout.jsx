@@ -11,6 +11,10 @@ const LINKS = {
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
     { to: '/profile', label: 'Профиль', icon: IconUser },
     { to: '/admin/teachers', label: 'Преподаватели', icon: IconUsers },
+    { to: '/admin/students', label: 'Студенты', icon: IconUsers },
+    { to: '/admin/subjects', label: 'Дисциплины', icon: IconBook2 },
+    { to: '/admin/assignments', label: 'Назначения', icon: IconChartBar },
+    { to: '/admin/groups', label: 'Группы', icon: IconUsers },
   ],
   TEACHER: [
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },

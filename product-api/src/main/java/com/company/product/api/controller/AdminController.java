@@ -47,6 +47,21 @@ public class AdminController {
         return userManagementService.listGroups();
     }
 
+    @PostMapping("/groups")
+    public UserManagementDtos.GroupItem createGroup(@Valid @RequestBody UserManagementDtos.CreateGroupRequest request) {
+        return userManagementService.createGroup(request);
+    }
+
+    @PutMapping("/groups/{groupId}")
+    public UserManagementDtos.GroupItem updateGroup(@PathVariable Long groupId, @Valid @RequestBody UserManagementDtos.UpdateGroupRequest request) {
+        return userManagementService.updateGroup(groupId, request);
+    }
+
+    @DeleteMapping("/groups/{groupId}")
+    public void deleteGroup(@PathVariable Long groupId) {
+        userManagementService.deleteGroup(groupId);
+    }
+
     @PostMapping("/subjects")
     public UserManagementDtos.SubjectItem createSubject(@Valid @RequestBody UserManagementDtos.CreateSubjectRequest request) {
         return userManagementService.createSubject(request);

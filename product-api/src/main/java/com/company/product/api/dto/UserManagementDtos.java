@@ -13,6 +13,8 @@ public class UserManagementDtos {
     public record UpdateUserRequest(@Email @NotBlank String email, @NotBlank String fullName, String password) {}
     public record CreateSubjectRequest(@NotBlank String code, @NotBlank String name) {}
     public record UpdateSubjectRequest(@NotBlank String code, @NotBlank String name) {}
+    public record CreateGroupRequest(@NotBlank String code, @NotBlank String name, @NotNull Integer courseYear) {}
+    public record UpdateGroupRequest(@NotBlank String code, @NotBlank String name, @NotNull Integer courseYear) {}
     public record CreateTeachingAssignmentRequest(@NotNull Long teacherId, @NotNull Long subjectId, @NotNull Long groupId) {}
     public record UserItem(Long id, String email, String fullName, Role role, String avatarUrl, boolean active) {}
     public record GroupItem(Long id, String code, String name, int courseYear) {}

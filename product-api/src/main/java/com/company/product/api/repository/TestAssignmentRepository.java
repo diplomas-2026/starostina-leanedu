@@ -13,5 +13,6 @@ public interface TestAssignmentRepository extends JpaRepository<TestAssignment, 
     List<TestAssignment> findByGroupAndActiveTrueOrderByDueAtAsc(GroupEntity group);
     List<TestAssignment> findByGroupAndTestSubjectAndActiveTrueOrderByDueAtAsc(GroupEntity group, Subject subject);
     List<TestAssignment> findByTestOrderByDueAtAsc(LearningTest test);
+    long countByGroup(GroupEntity group);
     long countByTestSubject(Subject subject);
 }

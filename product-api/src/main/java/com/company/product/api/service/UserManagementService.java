@@ -132,6 +132,47 @@ public class UserManagementService {
             .toList();
     }
 
+    public UserManagementDtos.GroupItem createGroup(UserManagementDtos.CreateGroupRequest request) {
+        groupRepository.findByCodeIgnoreCase(request.code().trim())
+            .ifPresent(existing -> {
+                throw new ApiException(HttpStatus.CONFLICT, "Группа с таким кодом уже существует");
+            });
+        GroupEntity group = new GroupEntity();
+        group.setCode(request.code().trim());
+        group.setName(request.name().trim());
+        group.setCourseYear(request.courseYear());
+        group = groupRepository.save(group);
+        return new UserManagementDtos.GroupItem(group.getId(), group.getCode(), group.getName(), group.getCourseYear());
+    }
+
+    public UserManagementDtos.GroupItem updateGroup(Long groupId, UserManagementDtos.UpdateGroupRequest request) {
+        GroupEntity group = groupRepository.findById(groupId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+        groupRepository.findByCodeIgnoreCase(request.code().trim())
+            .filter(existing -> !existing.getId().equals(group.getId()))
+            .ifPresent(existing -> {
+                throw new ApiException(HttpStatus.CONFLICT, "Группа с таким кодом уже существует");
+            });
+        group.setCode(request.code().trim());
+        group.setName(request.name().trim());
+        group.setCourseYear(request.courseYear());
+        group = groupRepository.save(group);
+        return new UserManagementDtos.GroupItem(group.getId(), group.getCode(), group.getName(), group.getCourseYear());
+    }
+
+    public void deleteGroup(Long groupId) {
+        GroupEntity group = groupRepository.findById(groupId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+        long students = groupStudentRepository.findByGroup(group).size();
+        long teachingAssignments = teachingAssignmentRepository.countByGroup(group);
+        long testAssignments = testAssignmentRepository.countByGroup(group);
+        if (students > 0 || teachingAssignments > 0 || testAssignments > 0) {
+            throw new ApiException(HttpStatus.CONFLICT, "Нельзя удалить группу, потому что в ней есть студенты или назначения");
+        }
+        teachingAssignmentRepository.deleteByGroup(group);
+        groupRepository.delete(group);
+    }
+
     public UserManagementDtos.SubjectItem createSubject(UserManagementDtos.CreateSubjectRequest request) {
         if (subjectRepository.findByCodeIgnoreCase(request.code()).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "Дисциплина с таким кодом уже существует");

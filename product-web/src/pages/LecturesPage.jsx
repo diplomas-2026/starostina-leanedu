@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Card, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { lectureApi, teacherApi } from '../api/services';

@@ -1,6 +1,6 @@
-import { Alert, Card, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
+import { Alert, Loader, Stack, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import NavigationCard from '../components/NavigationCard';
 import { teacherApi } from '../api/services';
 import { extractError } from '../utils/errors';
 
@@ -35,36 +35,14 @@ export default function TeacherDisciplinesPage() {
         <Alert color="yellow">У вас пока нет назначенных дисциплин. Обратитесь к администратору.</Alert>
       )}
 
-      {items.length > 0 && (
-        <Card withBorder>
-          <Table striped>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Код</Table.Th>
-                <Table.Th>Дисциплина</Table.Th>
-                <Table.Th />
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {items.map((item) => (
-                <Table.Tr key={item.id}>
-                  <Table.Td>{item.code}</Table.Td>
-                  <Table.Td>
-                    <Text fw={600}>{item.name}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group justify="flex-end">
-                      <Text component={Link} to={`/teacher/disciplines/${item.id}`} c="teal" fw={600}>
-                        Открыть
-                      </Text>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Card>
-      )}
+      {items.map((item) => (
+        <NavigationCard
+          key={item.id}
+          to={`/teacher/disciplines/${item.id}`}
+          title={`${item.code} — ${item.name}`}
+          subtitle="Перейти к лекциям, тестам, группам и журналу"
+        />
+      ))}
     </Stack>
   );
 }

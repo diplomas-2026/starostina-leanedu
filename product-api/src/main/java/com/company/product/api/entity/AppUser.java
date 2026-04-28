@@ -22,6 +22,9 @@ public class AppUser {
     @Column(nullable = false)
     private String fullName;
 
+    @Column
+    private String avatarUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

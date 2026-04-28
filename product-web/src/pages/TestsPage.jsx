@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
+import NavigationCard from '../components/NavigationCard';
 import { extractError } from '../utils/errors';
 import { publishStatusLabel } from '../utils/labels';
 
@@ -63,31 +64,25 @@ export default function TestsPage() {
       {message && <Alert color="green">{message}</Alert>}
 
       {items.map((test) => (
-        <Card key={test.id} withBorder radius="md" shadow="sm">
-          <Group justify="space-between" align="start">
-            <Stack gap={4}>
-              <Text fw={700}>{test.title}</Text>
-              <Text size="sm" c="dimmed">{test.description}</Text>
-              {user?.role !== 'STUDENT' && (
-                <Text size="xs" c="dimmed">
-                  Дисциплина: {test.subjectName || 'Не указана'} ·
-                  Пороги: 3 от {test.minScore3}, 4 от {test.minScore4}, 5 от {test.minScore5}
-                </Text>
-              )}
-            </Stack>
-
-            {user?.role === 'STUDENT' ? (
-              <Button onClick={() => startAttempt(test.id)}>Начать</Button>
-            ) : (
-              <Stack align="end" gap={8}>
-                <Text size="sm">{publishStatusLabel(test.published)}</Text>
-                <Button component={Link} to={`/tests/${test.id}`} variant="light" size="xs">
-                  Открыть
-                </Button>
+        user?.role === 'STUDENT' ? (
+          <Card key={test.id} withBorder radius="md" shadow="sm">
+            <Group justify="space-between" align="start">
+              <Stack gap={4}>
+                <Text fw={700}>{test.title}</Text>
+                <Text size="sm" c="dimmed">{test.description}</Text>
               </Stack>
-            )}
-          </Group>
-        </Card>
+              <Button onClick={() => startAttempt(test.id)}>Начать</Button>
+            </Group>
+          </Card>
+        ) : (
+          <NavigationCard
+            key={test.id}
+            to={`/tests/${test.id}`}
+            title={test.title}
+            subtitle={test.description}
+            meta={`Дисциплина: ${test.subjectName || 'Не указана'} · ${publishStatusLabel(test.published)} · Пороги: 3/${test.minScore3}, 4/${test.minScore4}, 5/${test.minScore5}`}
+          />
+        )
       ))}
     </Stack>
   );

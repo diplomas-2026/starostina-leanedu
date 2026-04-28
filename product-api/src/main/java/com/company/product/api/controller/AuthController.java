@@ -23,4 +23,9 @@ public class AuthController {
     public AuthDtos.UserResponse me() {
         return authService.me(currentUserService.requireCurrentUser());
     }
+
+    @PutMapping("/me/profile")
+    public AuthDtos.UserResponse updateProfile(@Valid @RequestBody AuthDtos.UpdateProfileRequest request) {
+        return authService.updateProfile(currentUserService.requireCurrentUser(), request);
+    }
 }

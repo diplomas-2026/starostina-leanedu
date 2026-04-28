@@ -2,6 +2,7 @@ import { Alert, Button, Card, Group, Loader, Select, Stack, Table, Text, Title }
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { teacherApi } from '../api/services';
+import AppUserAvatar from '../components/AppUserAvatar';
 import { extractError } from '../utils/errors';
 
 export default function TeacherGroupsPage() {
@@ -104,7 +105,10 @@ export default function TeacherGroupsPage() {
                 <Table.Tr key={student.id}>
                   <Table.Td>{student.id}</Table.Td>
                   <Table.Td>
-                    <Text fw={600}>{student.fullName}</Text>
+                    <Group gap="sm">
+                      <AppUserAvatar user={student} size={28} />
+                      <Text fw={600}>{student.fullName}</Text>
+                    </Group>
                   </Table.Td>
                   <Table.Td>{student.email}</Table.Td>
                 </Table.Tr>

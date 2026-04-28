@@ -33,7 +33,16 @@ public class AuthService {
         return toUser(user);
     }
 
+    public AuthDtos.UserResponse updateProfile(AppUser user, AuthDtos.UpdateProfileRequest request) {
+        AppUser persistentUser = appUserRepository.findById(user.getId())
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
+        persistentUser.setFullName(request.fullName().trim());
+        String avatar = request.avatarUrl() == null ? null : request.avatarUrl().trim();
+        persistentUser.setAvatarUrl(avatar == null || avatar.isEmpty() ? null : avatar);
+        return toUser(appUserRepository.save(persistentUser));
+    }
+
     private AuthDtos.UserResponse toUser(AppUser user) {
-        return new AuthDtos.UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole());
+        return new AuthDtos.UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getAvatarUrl());
     }
 }

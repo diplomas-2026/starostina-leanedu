@@ -286,7 +286,7 @@ public class UserManagementService {
     }
 
     private UserManagementDtos.UserItem toItem(AppUser user) {
-        return new UserManagementDtos.UserItem(user.getId(), user.getEmail(), user.getFullName(), user.getRole());
+        return new UserManagementDtos.UserItem(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getAvatarUrl());
     }
 
     private UserManagementDtos.SubjectItem toSubjectItem(Subject subject) {

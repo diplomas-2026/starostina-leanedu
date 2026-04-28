@@ -1,6 +1,7 @@
 import { Alert, Button, Card, Group, Loader, Select, Stack, Table, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from '../api/services';
+import AppUserAvatar from '../components/AppUserAvatar';
 import { extractError } from '../utils/errors';
 
 export default function AdminTeachersPage() {
@@ -216,7 +217,15 @@ export default function AdminTeachersPage() {
               </Table.Thead>
               <Table.Tbody>
                 {teachers.map((teacher) => (
-                  <Table.Tr key={teacher.id}><Table.Td>{teacher.fullName}</Table.Td><Table.Td>{teacher.email}</Table.Td></Table.Tr>
+                  <Table.Tr key={teacher.id}>
+                    <Table.Td>
+                      <Group gap="sm">
+                        <AppUserAvatar user={teacher} size={28} />
+                        <Text>{teacher.fullName}</Text>
+                      </Group>
+                    </Table.Td>
+                    <Table.Td>{teacher.email}</Table.Td>
+                  </Table.Tr>
                 ))}
               </Table.Tbody>
             </Table>
@@ -268,7 +277,12 @@ export default function AdminTeachersPage() {
                 {groupStudents.map((student) => (
                   <Table.Tr key={student.id}>
                     <Table.Td>{student.id}</Table.Td>
-                    <Table.Td>{student.fullName}</Table.Td>
+                    <Table.Td>
+                      <Group gap="sm">
+                        <AppUserAvatar user={student} size={28} />
+                        <Text>{student.fullName}</Text>
+                      </Group>
+                    </Table.Td>
                     <Table.Td>{student.email}</Table.Td>
                   </Table.Tr>
                 ))}

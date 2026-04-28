@@ -1,24 +1,32 @@
 import { AppShell, Burger, Group, NavLink, Text, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconBook2, IconChartBar, IconHome2, IconLogout, IconSparkles, IconUsers } from '@tabler/icons-react';
+import { IconBook2, IconChartBar, IconHome2, IconLogout, IconSparkles, IconUser, IconUsers } from '@tabler/icons-react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { roleLabel } from '../utils/labels';
+import AppUserAvatar from './AppUserAvatar';
 
 const LINKS = {
   ADMIN: [
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
     { to: '/admin/teachers', label: 'Преподаватели', icon: IconUsers },
+    { to: '/profile', label: 'Профиль', icon: IconUser },
   ],
   TEACHER: [
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
     { to: '/teacher/disciplines', label: 'Дисциплины', icon: IconBook2 },
+    { to: '/lectures', label: 'Лекции', icon: IconBook2 },
+    { to: '/tests', label: 'Тесты', icon: IconSparkles },
+    { to: '/teacher/groups', label: 'Группы', icon: IconUsers },
+    { to: '/gradebook', label: 'Журнал', icon: IconChartBar },
+    { to: '/profile', label: 'Профиль', icon: IconUser },
   ],
   STUDENT: [
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
     { to: '/lectures', label: 'Лекции', icon: IconBook2 },
     { to: '/tests', label: 'Тесты', icon: IconSparkles },
     { to: '/my-results', label: 'Мои результаты', icon: IconChartBar },
+    { to: '/profile', label: 'Профиль', icon: IconUser },
   ],
 };
 
@@ -46,6 +54,7 @@ export default function MainLayout() {
             <Title order={4}>LeanEdu PGK</Title>
           </Group>
           <Group>
+            <AppUserAvatar user={user} size={32} />
             <Text size="sm">{user?.fullName}</Text>
             <Text size="xs" c="dimmed">{roleLabel(user?.role)}</Text>
           </Group>

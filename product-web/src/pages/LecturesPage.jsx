@@ -1,7 +1,8 @@
-import { Alert, Badge, Button, Card, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Button, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { lectureApi, teacherApi } from '../api/services';
+import NavigationCard from '../components/NavigationCard';
 import LectureEditor from '../components/LectureEditor';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
@@ -143,19 +144,13 @@ export default function LecturesPage() {
         </Card>
       )}
       {items.map((lecture) => (
-        <Card key={lecture.id} withBorder radius="md" shadow="sm">
-          <Group justify="space-between" align="start">
-            <Stack gap={4}>
-              <Text fw={700}>{lecture.title}</Text>
-              <Text size="sm" c="dimmed">{lecture.summary}</Text>
-              <Text size="xs" c="dimmed">Дисциплина: {lecture.subjectName || '—'}</Text>
-              <Badge size="sm" variant="light">
-                {publishStatusLabel(lecture.published)}
-              </Badge>
-            </Stack>
-            <Button component={Link} to={`/lectures/${lecture.id}`} variant="light">Открыть</Button>
-          </Group>
-        </Card>
+        <NavigationCard
+          key={lecture.id}
+          to={`/lectures/${lecture.id}`}
+          title={lecture.title}
+          subtitle={lecture.summary}
+          meta={`Дисциплина: ${lecture.subjectName || '—'} · ${publishStatusLabel(lecture.published)}`}
+        />
       ))}
 
       <Modal

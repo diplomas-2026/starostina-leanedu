@@ -2,6 +2,8 @@ import { Alert, Button, Card, Group, Loader, Stack, Table, Text, Title } from '@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { lectureApi, teacherApi, testApi } from '../api/services';
+import AppUserAvatar from '../components/AppUserAvatar';
+import NavigationCard from '../components/NavigationCard';
 import { extractError } from '../utils/errors';
 
 export default function TeacherDisciplineDetailsPage() {
@@ -99,13 +101,13 @@ export default function TeacherDisciplineDetailsPage() {
                 <Alert color="yellow">Лекций по этой дисциплине пока нет.</Alert>
               ) : (
                 lectures.map((lecture) => (
-                  <Group key={lecture.id} justify="space-between">
-                    <div>
-                      <Text fw={600}>{lecture.title}</Text>
-                      <Text size="sm" c="dimmed">{lecture.summary}</Text>
-                    </div>
-                    <Button component={Link} to={`/lectures/${lecture.id}`} variant="light" size="xs">Открыть</Button>
-                  </Group>
+                  <NavigationCard
+                    key={lecture.id}
+                    to={`/lectures/${lecture.id}`}
+                    title={lecture.title}
+                    subtitle={lecture.summary}
+                    meta={lecture.published ? 'Опубликовано' : 'Черновик'}
+                  />
                 ))
               )}
             </Stack>
@@ -118,13 +120,13 @@ export default function TeacherDisciplineDetailsPage() {
                 <Alert color="yellow">Тестов по этой дисциплине пока нет.</Alert>
               ) : (
                 tests.map((test) => (
-                  <Group key={test.id} justify="space-between">
-                    <div>
-                      <Text fw={600}>{test.title}</Text>
-                      <Text size="sm" c="dimmed">{test.description}</Text>
-                    </div>
-                    <Button component={Link} to={`/tests/${test.id}`} variant="light" size="xs">Открыть</Button>
-                  </Group>
+                  <NavigationCard
+                    key={test.id}
+                    to={`/tests/${test.id}`}
+                    title={test.title}
+                    subtitle={test.description}
+                    meta={`Пороги: 3/${test.minScore3}, 4/${test.minScore4}, 5/${test.minScore5}`}
+                  />
                 ))
               )}
             </Stack>
@@ -190,7 +192,12 @@ export default function TeacherDisciplineDetailsPage() {
                           {students.map((student) => (
                             <Table.Tr key={student.id}>
                               <Table.Td>{student.id}</Table.Td>
-                              <Table.Td>{student.fullName}</Table.Td>
+                              <Table.Td>
+                                <Group gap="sm">
+                                  <AppUserAvatar user={student} size={30} />
+                                  <Text>{student.fullName}</Text>
+                                </Group>
+                              </Table.Td>
                               <Table.Td>{student.email}</Table.Td>
                             </Table.Tr>
                           ))}

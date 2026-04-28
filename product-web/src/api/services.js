@@ -3,6 +3,7 @@ import api from './client';
 export const authApi = {
   login: (payload) => api.post('/api/auth/login', payload),
   me: () => api.get('/api/auth/me'),
+  updateProfile: (payload) => api.put('/api/auth/me/profile', payload),
 };
 
 export const lectureApi = {

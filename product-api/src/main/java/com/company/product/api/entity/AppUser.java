@@ -22,7 +22,7 @@ public class AppUser {
     @Column(nullable = false)
     private String fullName;
 
-    @Column
+    @Column(columnDefinition = "TEXT")
     private String avatarUrl;
 
     @Enumerated(EnumType.STRING)

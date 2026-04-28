@@ -17,6 +17,7 @@ import java.util.Base64;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+    private static final long MAX_AVATAR_SIZE_BYTES = 2L * 1024L * 1024L;
     private final AuthenticationManager authenticationManager;
     private final AppUserRepository appUserRepository;
     private final JwtService jwtService;
@@ -49,6 +50,9 @@ public class AuthService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
         if (file == null || file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Файл не передан");
+        }
+        if (file.getSize() > MAX_AVATAR_SIZE_BYTES) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Размер фото не должен превышать 2 МБ");
         }
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {

@@ -2,7 +2,7 @@ import { Alert, Button, Card, Group, Loader, Radio, Stack, Text, Title } from '@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { testApi } from '../api/services';
-import { AttemptStatusBadge } from '../components/SemanticBadges';
+import { AttemptStatusBadge, GradeBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
 
 function formatSeconds(seconds) {
@@ -106,7 +106,10 @@ export default function StudentTestAttemptPage() {
             {session.status === 'IN_PROGRESS' ? (
               <Text fw={700}>Осталось: {formatSeconds(secondsLeft)}</Text>
             ) : (
-              <Text fw={700}>Результат: {session.score} / {session.maxScore}{session.grade ? ` · Оценка ${session.grade}` : ''}</Text>
+              <Group gap="xs">
+                <Text fw={700}>Результат: {session.score} / {session.maxScore}</Text>
+                <GradeBadge grade={session.grade} />
+              </Group>
             )}
           </Group>
           {session.availableUntil && session.status === 'IN_PROGRESS' && (

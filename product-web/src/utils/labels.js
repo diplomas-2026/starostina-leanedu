@@ -29,6 +29,13 @@ export const GRADEBOOK_STATUS_BADGE_COLORS = {
   'Не приступал': 'gray',
 };
 
+export const GRADE_BADGE_COLORS = {
+  2: 'red',
+  3: 'yellow',
+  4: 'blue',
+  5: 'teal',
+};
+
 export function roleLabel(role) {
   return ROLE_LABELS[role] || role || '-';
 }
@@ -55,4 +62,16 @@ export function publishStatusBadgeColor(isPublished) {
 
 export function gradebookStatusBadgeColor(status) {
   return GRADEBOOK_STATUS_BADGE_COLORS[status] || 'gray';
+}
+
+export function gradeBadgeColor(grade) {
+  const numeric = Number(grade);
+  if (!Number.isFinite(numeric)) return 'gray';
+  if (Number.isInteger(numeric) && GRADE_BADGE_COLORS[numeric]) {
+    return GRADE_BADGE_COLORS[numeric];
+  }
+  if (numeric < 3) return 'red';
+  if (numeric < 4) return 'yellow';
+  if (numeric < 4.5) return 'blue';
+  return 'teal';
 }

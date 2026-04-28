@@ -1,8 +1,8 @@
-import { Alert, Badge, Card, Loader, ScrollArea, Select, Stack, Table, Text, Title } from '@mantine/core';
+import { Alert, Card, Loader, ScrollArea, Select, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { gradebookApi } from '../api/services';
-import { GradebookStatusBadge } from '../components/SemanticBadges';
+import { GradeBadge, GradebookStatusBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
 
 export default function GradebookPage() {
@@ -175,9 +175,7 @@ export default function GradebookPage() {
                           <Table.Td key={`${row.studentId}-${matrix.columns[index].assignmentId}`}>
                             {cell.grade ? (
                               <Stack gap={4}>
-                                <Badge color="teal" variant="light">
-                                  Оценка: {cell.grade}
-                                </Badge>
+                                <GradeBadge grade={cell.grade} />
                                 <Text size="xs" c="dimmed">
                                   Баллы: {cell.score} / {cell.maxScore}
                                 </Text>

@@ -1,7 +1,7 @@
 import { Alert, Card, Grid, Group, Loader, Progress, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { lectureApi, teacherApi, testApi } from '../api/services';
-import { RoleBadge } from '../components/SemanticBadges';
+import { GradeBadge, RoleBadge } from '../components/SemanticBadges';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
 
@@ -85,7 +85,7 @@ export default function DashboardPage() {
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Card withBorder>
               <Text size="sm" c="dimmed">Средняя оценка</Text>
-              <Text fw={700} size="xl">{studentSummary.avgGrade || '—'}</Text>
+              <GradeBadge grade={studentSummary.avgGrade || null} prefix="Средняя" />
             </Card>
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 12 }}>

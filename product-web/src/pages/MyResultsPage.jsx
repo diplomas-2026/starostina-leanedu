@@ -1,7 +1,7 @@
 import { Alert, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { testApi } from '../api/services';
-import { AttemptStatusBadge } from '../components/SemanticBadges';
+import { AttemptStatusBadge, GradeBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
 
 export default function MyResultsPage() {
@@ -37,7 +37,7 @@ export default function MyResultsPage() {
             <AttemptStatusBadge status={it.status} />
           </Group>
           <Text>Баллы: {it.score} / {it.maxScore}</Text>
-          {it.grade ? <Text>Оценка: {it.grade}</Text> : null}
+          <GradeBadge grade={it.grade} />
         </Card>
       ))}
     </Stack>

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { studentApi } from '../api/services';
 import NavigationCard from '../components/NavigationCard';
-import { AttemptStatusBadge } from '../components/SemanticBadges';
+import { AttemptStatusBadge, GradeBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
 
 export default function StudentDisciplineDetailsPage() {
@@ -47,8 +47,12 @@ export default function StudentDisciplineDetailsPage() {
             to={`/lectures/${lecture.lectureId}`}
             title={lecture.lectureTitle}
             subtitle={lecture.lectureSummary}
-            meta={lecture.averageGrade ? `Средняя оценка за лекцию: ${lecture.averageGrade}` : 'Средняя оценка: пока нет результатов'}
+            meta="Открыть лекцию"
           />
+          <Group style={{ paddingLeft: 12, paddingRight: 12 }}>
+            <GradeBadge grade={lecture.averageGrade} prefix="Средняя за лекцию" />
+            {!lecture.averageGrade ? <Text size="sm" c="dimmed">Средняя оценка пока не рассчитана.</Text> : null}
+          </Group>
 
           {lecture.tests?.length > 0 ? (
             lecture.tests.map((test) => (
@@ -58,7 +62,7 @@ export default function StudentDisciplineDetailsPage() {
                 </Text>
                 <Group gap="xs">
                   <AttemptStatusBadge status={test.status} />
-                  {test.grade ? <Badge color="teal">Оценка: {test.grade}</Badge> : null}
+                  <GradeBadge grade={test.grade} />
                   {test.score != null && test.maxScore != null ? (
                     <Badge color="blue">{test.score}/{test.maxScore}</Badge>
                   ) : null}

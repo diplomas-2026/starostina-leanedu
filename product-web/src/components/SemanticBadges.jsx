@@ -2,6 +2,7 @@ import { Badge } from '@mantine/core';
 import {
   attemptStatusBadgeColor,
   attemptStatusLabel,
+  gradeBadgeColor,
   gradebookStatusBadgeColor,
   publishStatusBadgeColor,
   publishStatusLabel,
@@ -37,6 +38,15 @@ export function GradebookStatusBadge({ status, size = 'sm' }) {
   return (
     <Badge size={size} color={gradebookStatusBadgeColor(status)} variant="light" radius="sm">
       {status}
+    </Badge>
+  );
+}
+
+export function GradeBadge({ grade, size = 'sm', prefix = 'Оценка' }) {
+  if (grade === null || grade === undefined || grade === '') return null;
+  return (
+    <Badge size={size} color={gradeBadgeColor(grade)} variant="light" radius="sm">
+      {prefix}: {grade}
     </Badge>
   );
 }

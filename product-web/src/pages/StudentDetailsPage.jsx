@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { studentApi } from '../api/services';
 import AppUserAvatar from '../components/AppUserAvatar';
 import NavigationCard from '../components/NavigationCard';
-import { AttemptStatusBadge } from '../components/SemanticBadges';
+import { AttemptStatusBadge, GradeBadge } from '../components/SemanticBadges';
 import { extractError } from '../utils/errors';
 
 export default function StudentDetailsPage() {
@@ -50,7 +50,7 @@ export default function StudentDetailsPage() {
           <Grid>
             <Grid.Col span={{ base: 12, md: 4 }}><Card withBorder><Text size="sm" c="dimmed">Группы</Text><Text fw={700} size="xl">{summary.groupsCount}</Text></Card></Grid.Col>
             <Grid.Col span={{ base: 12, md: 4 }}><Card withBorder><Text size="sm" c="dimmed">Сдано попыток</Text><Text fw={700} size="xl">{summary.submittedAttemptsCount}</Text></Card></Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}><Card withBorder><Text size="sm" c="dimmed">Средняя оценка</Text><Text fw={700} size="xl">{summary.averageGrade || '—'}</Text></Card></Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}><Card withBorder><Text size="sm" c="dimmed">Средняя оценка</Text><GradeBadge grade={summary.averageGrade || null} prefix="Средняя" /></Card></Grid.Col>
           </Grid>
 
           <Card withBorder>
@@ -94,7 +94,7 @@ export default function StudentDetailsPage() {
                       <Table.Td>{attempt.subjectName || '—'}</Table.Td>
                       <Table.Td><AttemptStatusBadge status={attempt.status} /></Table.Td>
                       <Table.Td>{attempt.score} / {attempt.maxScore}</Table.Td>
-                      <Table.Td>{attempt.grade ?? '—'}</Table.Td>
+                      <Table.Td>{attempt.grade != null ? <GradeBadge grade={attempt.grade} size="xs" prefix="Оценка" /> : '—'}</Table.Td>
                     </Table.Tr>
                   ))}
                 </Table.Tbody>

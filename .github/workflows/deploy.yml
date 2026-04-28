@@ -59,7 +59,8 @@ jobs:
             docker compose -p starostina_leanedu -f "$LEGACY_STACK_FILE" down --remove-orphans || true
           fi
 
-          docker compose -p opt -f "$SHARED_COMPOSE_FILE" up -d --build starostina-api
+          docker compose -p opt -f "$SHARED_COMPOSE_FILE" build starostina-api
+          docker compose -p opt -f "$SHARED_COMPOSE_FILE" up -d --no-deps starostina-api
 
           api_ready=0
           for i in $(seq 1 60); do

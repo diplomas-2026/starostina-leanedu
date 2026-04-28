@@ -62,6 +62,15 @@ jobs:
           docker compose -p opt -f "$SHARED_COMPOSE_FILE" build starostina-api
           docker compose -p opt -f "$SHARED_COMPOSE_FILE" up -d --no-deps starostina-api
 
+          NGINX_SITE="/etc/nginx/sites-enabled/${FQDN}"
+          if [ ! -f "$NGINX_SITE" ]; then
+            echo "Nginx site config not found: $NGINX_SITE"
+            exit 1
+          fi
+          sed -E -i "s#127\\.0\\.0\\.1:180[0-9]{2}#127.0.0.1:${API_PORT}#g" "$NGINX_SITE"
+          nginx -t
+          systemctl reload nginx
+
           api_ready=0
           for i in $(seq 1 60); do
             if curl -fsS "http://127.0.0.1:${API_PORT}/actuator/health" >/dev/null 2>&1; then

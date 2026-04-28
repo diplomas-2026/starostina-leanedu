@@ -5,6 +5,7 @@ import com.company.product.api.service.TestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,5 +21,15 @@ public class GradebookController {
     @GetMapping
     public List<TestDtos.GradebookItem> list() {
         return testService.listGradebook();
+    }
+
+    @GetMapping("/groups")
+    public List<TestDtos.GradebookGroupOption> groups() {
+        return testService.listGradebookGroups();
+    }
+
+    @GetMapping("/matrix")
+    public TestDtos.GradebookMatrix matrix(@RequestParam Long groupId) {
+        return testService.getGradebookMatrix(groupId);
     }
 }

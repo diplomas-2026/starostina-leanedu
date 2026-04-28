@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -176,6 +179,68 @@ public class TestService {
                 a.getMaxScore()
             ))
             .toList();
+    }
+
+    public List<TestDtos.GradebookGroupOption> listGradebookGroups() {
+        return groupRepository.findAll().stream()
+            .sorted(Comparator.comparing(GroupEntity::getCode, Comparator.nullsLast(String::compareToIgnoreCase)))
+            .map(group -> new TestDtos.GradebookGroupOption(group.getId(), group.getCode(), group.getName()))
+            .toList();
+    }
+
+    public TestDtos.GradebookMatrix getGradebookMatrix(Long groupId) {
+        GroupEntity group = groupRepository.findById(groupId)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+
+        List<GroupStudent> memberships = groupStudentRepository.findByGroup(group);
+        List<AppUser> students = memberships.stream()
+            .map(GroupStudent::getStudent)
+            .distinct()
+            .sorted(Comparator.comparing(AppUser::getFullName, String::compareToIgnoreCase))
+            .toList();
+
+        List<TestAssignment> assignments = testAssignmentRepository.findByGroupAndActiveTrueOrderByDueAtAsc(group);
+        List<LearningTest> tests = assignments.stream()
+            .map(TestAssignment::getTest)
+            .distinct()
+            .toList();
+
+        Map<String, TestAttempt> latestSubmittedByStudentAndTest = new HashMap<>();
+        if (!students.isEmpty() && !tests.isEmpty()) {
+            List<TestAttempt> submittedAttempts = testAttemptRepository
+                .findByStudentInAndTestInAndStatusOrderBySubmittedAtDesc(students, tests, AttemptStatus.SUBMITTED);
+            for (TestAttempt attempt : submittedAttempts) {
+                String key = buildStudentTestKey(attempt.getStudent().getId(), attempt.getTest().getId());
+                latestSubmittedByStudentAndTest.putIfAbsent(key, attempt);
+            }
+        }
+
+        List<TestDtos.GradebookColumn> columns = assignments.stream()
+            .map(a -> new TestDtos.GradebookColumn(a.getId(), a.getTest().getTitle(), a.getDueAt()))
+            .toList();
+
+        List<TestDtos.GradebookRow> rows = students.stream()
+            .map(student -> new TestDtos.GradebookRow(
+                student.getId(),
+                student.getFullName(),
+                assignments.stream().map(assignment -> {
+                    TestAttempt attempt = latestSubmittedByStudentAndTest.get(buildStudentTestKey(student.getId(), assignment.getTest().getId()));
+                    if (attempt != null) {
+                        return new TestDtos.GradebookCell("Оценено", attempt.getScore(), attempt.getMaxScore());
+                    }
+                    if (assignment.getDueAt() != null && OffsetDateTime.now().isAfter(assignment.getDueAt())) {
+                        return new TestDtos.GradebookCell("Просрочено", null, null);
+                    }
+                    return new TestDtos.GradebookCell("Не сдано", null, null);
+                }).toList()
+            ))
+            .toList();
+
+        return new TestDtos.GradebookMatrix(group.getId(), group.getCode(), group.getName(), columns, rows);
+    }
+
+    private String buildStudentTestKey(Long studentId, Long testId) {
+        return studentId + ":" + testId;
     }
 
     private LearningTest getTestOrThrow(Long testId) {

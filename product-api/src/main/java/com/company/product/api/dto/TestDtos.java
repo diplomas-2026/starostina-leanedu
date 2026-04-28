@@ -17,4 +17,9 @@ public class TestDtos {
     public record TestItem(Long id, String title, String description, boolean published) {}
     public record AttemptItem(Long id, Long testId, String testTitle, Integer score, Integer maxScore, String status) {}
     public record GradebookItem(Long attemptId, String studentName, String testTitle, Integer score, Integer maxScore) {}
+    public record GradebookGroupOption(Long id, String code, String name) {}
+    public record GradebookColumn(Long assignmentId, String testTitle, OffsetDateTime dueAt) {}
+    public record GradebookCell(String status, Integer score, Integer maxScore) {}
+    public record GradebookRow(Long studentId, String studentName, List<GradebookCell> cells) {}
+    public record GradebookMatrix(Long groupId, String groupCode, String groupName, List<GradebookColumn> columns, List<GradebookRow> rows) {}
 }

@@ -1,41 +1,149 @@
-import { Alert, Card, Loader, Stack, Text, Title } from '@mantine/core';
+import { Alert, Badge, Card, Loader, ScrollArea, Select, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { gradebookApi } from '../api/services';
 import { extractError } from '../utils/errors';
 
 export default function GradebookPage() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [matrix, setMatrix] = useState(null);
+  const [loadingGroups, setLoadingGroups] = useState(true);
+  const [loadingMatrix, setLoadingMatrix] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
+    const loadGroups = async () => {
+      setLoadingGroups(true);
       setError('');
       try {
-        const { data } = await gradebookApi.all();
-        setItems(data);
+        const { data } = await gradebookApi.groups();
+        const options = data.map((group) => ({
+          value: String(group.id),
+          label: `${group.code} — ${group.name}`,
+        }));
+        setGroups(options);
+        if (options.length > 0) {
+          setSelectedGroupId(options[0].value);
+        }
       } catch (err) {
-        setError(extractError(err, 'Не удалось загрузить журнал'));
+        setError(extractError(err, 'Не удалось загрузить список групп'));
       } finally {
-        setLoading(false);
+        setLoadingGroups(false);
       }
     };
-    load();
+    loadGroups();
   }, []);
+
+  useEffect(() => {
+    if (!selectedGroupId) {
+      setMatrix(null);
+      return;
+    }
+
+    const loadMatrix = async () => {
+      setLoadingMatrix(true);
+      setError('');
+      try {
+        const { data } = await gradebookApi.matrix(selectedGroupId);
+        setMatrix(data);
+      } catch (err) {
+        setError(extractError(err, 'Не удалось загрузить журнал группы'));
+      } finally {
+        setLoadingMatrix(false);
+      }
+    };
+    loadMatrix();
+  }, [selectedGroupId]);
+
+  const formatDueAt = (value) => {
+    if (!value) return 'Без дедлайна';
+    return new Date(value).toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   return (
     <Stack>
       <Title order={2}>Журнал успеваемости</Title>
-      {loading && <Loader />}
       {error && <Alert color="red">{error}</Alert>}
-      {items.map((item) => (
-        <Card key={item.attemptId} withBorder>
-          <Text fw={600}>{item.studentName}</Text>
-          <Text>{item.testTitle}</Text>
-          <Text>Баллы: {item.score} / {item.maxScore}</Text>
-        </Card>
-      ))}
+
+      <Card withBorder>
+        {loadingGroups ? (
+          <Loader color="teal" />
+        ) : (
+          <Select
+            label="Группа"
+            placeholder="Выберите группу"
+            value={selectedGroupId}
+            data={groups}
+            onChange={(value) => setSelectedGroupId(value || '')}
+            nothingFoundMessage="Группы не найдены"
+            searchable
+          />
+        )}
+      </Card>
+
+      <Card withBorder>
+        {loadingMatrix && <Loader color="teal" />}
+        {!loadingMatrix && matrix && (
+          <Stack gap="md">
+            <Text c="dimmed">
+              Группа: {matrix.groupCode} — {matrix.groupName}
+            </Text>
+
+            {matrix.columns.length === 0 ? (
+              <Alert color="blue">Для выбранной группы пока нет назначенных тестов.</Alert>
+            ) : (
+              <ScrollArea>
+                <Table striped highlightOnHover withTableBorder withColumnBorders>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th miw={260}>Студент</Table.Th>
+                      {matrix.columns.map((column) => (
+                        <Table.Th key={column.assignmentId} miw={220}>
+                          <Stack gap={2}>
+                            <Text fw={600}>{column.testTitle}</Text>
+                            <Text size="xs" c="dimmed">Дедлайн: {formatDueAt(column.dueAt)}</Text>
+                          </Stack>
+                        </Table.Th>
+                      ))}
+                    </Table.Tr>
+                  </Table.Thead>
+
+                  <Table.Tbody>
+                    {matrix.rows.map((row) => (
+                      <Table.Tr key={row.studentId}>
+                        <Table.Td>{row.studentName}</Table.Td>
+                        {row.cells.map((cell, index) => (
+                          <Table.Td key={`${row.studentId}-${matrix.columns[index].assignmentId}`}>
+                            {cell.status === 'Оценено' ? (
+                              <Badge color="teal" variant="light">
+                                {cell.score} / {cell.maxScore}
+                              </Badge>
+                            ) : (
+                              <Badge color={cell.status === 'Просрочено' ? 'red' : 'gray'} variant="light">
+                                {cell.status}
+                              </Badge>
+                            )}
+                          </Table.Td>
+                        ))}
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </ScrollArea>
+            )}
+          </Stack>
+        )}
+
+        {!loadingMatrix && matrix && matrix.rows.length === 0 && (
+          <Alert color="yellow" mt="md">В этой группе пока нет студентов.</Alert>
+        )}
+      </Card>
     </Stack>
   );
 }

@@ -42,4 +42,6 @@ export const aiApi = {
 
 export const gradebookApi = {
   all: () => api.get('/api/gradebook'),
+  groups: () => api.get('/api/gradebook/groups'),
+  matrix: (groupId) => api.get('/api/gradebook/matrix', { params: { groupId } }),
 };

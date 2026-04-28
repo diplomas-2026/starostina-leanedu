@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface TestAssignmentRepository extends JpaRepository<TestAssignment, Long> {
     List<TestAssignment> findByGroupAndActiveTrue(GroupEntity group);
+    List<TestAssignment> findByGroupAndActiveTrueOrderByDueAtAsc(GroupEntity group);
 }

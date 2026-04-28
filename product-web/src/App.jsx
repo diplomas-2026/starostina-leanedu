@@ -10,6 +10,8 @@ import CreateTestPage from './pages/CreateTestPage';
 import TestDetailsPage from './pages/TestDetailsPage';
 import TestQuestionEditorPage from './pages/TestQuestionEditorPage';
 import StudentTestAttemptPage from './pages/StudentTestAttemptPage';
+import StudentDisciplinesPage from './pages/StudentDisciplinesPage';
+import StudentDisciplineDetailsPage from './pages/StudentDisciplineDetailsPage';
 import MyResultsPage from './pages/MyResultsPage';
 import AdminTeachersPage from './pages/AdminTeachersPage';
 import TeacherGroupsPage from './pages/TeacherGroupsPage';
@@ -36,6 +38,8 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/students/:id" element={<StudentDetailsPage />} />
           <Route path="/groups/:id" element={<GroupDetailsPage />} />
+          <Route path="/student/disciplines" element={<StudentDisciplinesPage />} />
+          <Route path="/student/disciplines/:subjectId" element={<StudentDisciplineDetailsPage />} />
 
           <Route element={<ProtectedRoute roles={['TEACHER']} />}>
             <Route path="/tests/new" element={<CreateTestPage />} />

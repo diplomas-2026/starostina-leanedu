@@ -71,6 +71,8 @@ export const gradebookApi = {
 
 export const studentApi = {
   summary: (studentId) => api.get(`/api/students/${studentId}/summary`),
+  myDisciplines: () => api.get('/api/students/me/disciplines'),
+  myDisciplineDetails: (subjectId) => api.get(`/api/students/me/disciplines/${subjectId}`),
 };
 
 export const groupApi = {

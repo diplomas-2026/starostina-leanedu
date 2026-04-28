@@ -22,4 +22,16 @@ public class StudentController {
     public UserManagementDtos.StudentSummary summary(@PathVariable Long studentId) {
         return userManagementService.getStudentSummary(currentUserService.requireCurrentUser(), studentId);
     }
+
+    @GetMapping("/me/disciplines")
+    @PreAuthorize("hasRole('STUDENT')")
+    public java.util.List<UserManagementDtos.StudentDisciplineItem> myDisciplines() {
+        return userManagementService.listStudentDisciplines(currentUserService.requireCurrentUser());
+    }
+
+    @GetMapping("/me/disciplines/{subjectId}")
+    @PreAuthorize("hasRole('STUDENT')")
+    public UserManagementDtos.StudentDisciplineDetails myDisciplineDetails(@PathVariable Long subjectId) {
+        return userManagementService.getStudentDisciplineDetails(currentUserService.requireCurrentUser(), subjectId);
+    }
 }

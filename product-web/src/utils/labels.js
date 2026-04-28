@@ -7,6 +7,7 @@ export const ROLE_LABELS = {
 export const ATTEMPT_STATUS_LABELS = {
   IN_PROGRESS: 'В процессе',
   SUBMITTED: 'Отправлено',
+  NOT_STARTED: 'Не приступал',
 };
 
 export function roleLabel(role) {

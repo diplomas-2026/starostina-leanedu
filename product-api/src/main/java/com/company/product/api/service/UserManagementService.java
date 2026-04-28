@@ -2,6 +2,8 @@ package com.company.product.api.service;
 
 import com.company.product.api.dto.UserManagementDtos;
 import com.company.product.api.entity.AppUser;
+import com.company.product.api.entity.LearningTest;
+import com.company.product.api.entity.Lecture;
 import com.company.product.api.entity.GroupEntity;
 import com.company.product.api.entity.GroupStudent;
 import com.company.product.api.entity.Role;
@@ -24,7 +26,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -245,6 +249,110 @@ public class UserManagementService {
         );
     }
 
+    public List<UserManagementDtos.StudentDisciplineItem> listStudentDisciplines(AppUser student) {
+        GroupEntity group = requireStudentGroup(student);
+        return teachingAssignmentRepository.findByGroup(group).stream()
+            .sorted(Comparator
+                .comparing((TeachingAssignment ta) -> ta.getSubject().getCode(), Comparator.nullsLast(String::compareToIgnoreCase))
+                .thenComparing(ta -> ta.getTeacher().getFullName(), String::compareToIgnoreCase))
+            .map(assignment -> new UserManagementDtos.StudentDisciplineItem(
+                assignment.getSubject().getId(),
+                assignment.getSubject().getCode(),
+                assignment.getSubject().getName(),
+                assignment.getTeacher().getId(),
+                assignment.getTeacher().getFullName(),
+                group.getId(),
+                group.getCode(),
+                group.getName()
+            ))
+            .toList();
+    }
+
+    public UserManagementDtos.StudentDisciplineDetails getStudentDisciplineDetails(AppUser student, Long subjectId) {
+        GroupEntity group = requireStudentGroup(student);
+        TeachingAssignment assignment = teachingAssignmentRepository.findByGroup(group).stream()
+            .filter(item -> item.getSubject().getId().equals(subjectId))
+            .findFirst()
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Дисциплина не найдена в вашей группе"));
+
+        Subject subject = assignment.getSubject();
+        List<Lecture> lectures = lectureRepository.findByPublishedTrueAndSubject(subject);
+
+        List<UserManagementDtos.StudentLectureProgressItem> lectureItems = lectures.stream()
+            .sorted(Comparator.comparing(Lecture::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+            .map(lecture -> {
+                List<LearningTest> lectureTests = learningTestRepository.findByLectureId(lecture.getId()).stream()
+                    .filter(LearningTest::isPublished)
+                    .toList();
+
+                Map<Long, UserManagementDtos.StudentLectureTestItem> testMap = new LinkedHashMap<>();
+                for (LearningTest lectureTest : lectureTests) {
+                    boolean assigned = testAssignmentRepository.findByGroupAndActiveTrue(group).stream()
+                        .anyMatch(testAssignment -> testAssignment.getTest().getId().equals(lectureTest.getId()));
+                    if (!assigned) {
+                        continue;
+                    }
+                    TestAttempt latestAttempt = testAttemptRepository.findByStudentAndTestOrderByStartedAtDesc(student, lectureTest).stream()
+                        .findFirst()
+                        .orElse(null);
+
+                    if (latestAttempt == null) {
+                        testMap.put(lectureTest.getId(), new UserManagementDtos.StudentLectureTestItem(
+                            lectureTest.getId(),
+                            lectureTest.getTitle(),
+                            "NOT_STARTED",
+                            null,
+                            null,
+                            null
+                        ));
+                        continue;
+                    }
+
+                    Integer grade = latestAttempt.getStatus() == AttemptStatus.SUBMITTED
+                        ? resolveGrade(lectureTest.getMinScore3(), lectureTest.getMinScore4(), lectureTest.getMinScore5(), latestAttempt.getScore())
+                        : null;
+                    testMap.put(lectureTest.getId(), new UserManagementDtos.StudentLectureTestItem(
+                        lectureTest.getId(),
+                        lectureTest.getTitle(),
+                        latestAttempt.getStatus().name(),
+                        latestAttempt.getScore(),
+                        latestAttempt.getMaxScore(),
+                        grade
+                    ));
+                }
+
+                List<UserManagementDtos.StudentLectureTestItem> tests = List.copyOf(testMap.values());
+                List<Integer> grades = tests.stream()
+                    .map(UserManagementDtos.StudentLectureTestItem::grade)
+                    .filter(Objects::nonNull)
+                    .toList();
+                Integer averageGrade = grades.isEmpty()
+                    ? null
+                    : (int) Math.round(grades.stream().mapToInt(Integer::intValue).average().orElse(0));
+
+                return new UserManagementDtos.StudentLectureProgressItem(
+                    lecture.getId(),
+                    lecture.getTitle(),
+                    lecture.getSummary(),
+                    averageGrade,
+                    tests
+                );
+            })
+            .toList();
+
+        return new UserManagementDtos.StudentDisciplineDetails(
+            subject.getId(),
+            subject.getCode(),
+            subject.getName(),
+            assignment.getTeacher().getId(),
+            assignment.getTeacher().getFullName(),
+            group.getId(),
+            group.getCode(),
+            group.getName(),
+            lectureItems
+        );
+    }
+
     public UserManagementDtos.TeacherDashboardSummary getTeacherDashboardSummary(AppUser teacher) {
         List<TeachingAssignment> assignments = teachingAssignmentRepository.findByTeacher(teacher);
         List<GroupEntity> groups = assignments.stream()
@@ -419,6 +527,16 @@ public class UserManagementService {
 
     private UserManagementDtos.SubjectItem toSubjectItem(Subject subject) {
         return new UserManagementDtos.SubjectItem(subject.getId(), subject.getCode(), subject.getName());
+    }
+
+    private GroupEntity requireStudentGroup(AppUser student) {
+        if (student.getRole() != Role.STUDENT) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Доступно только студенту");
+        }
+        return groupStudentRepository.findByStudent(student).stream()
+            .map(GroupStudent::getGroup)
+            .findFirst()
+            .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Студент не привязан к группе"));
     }
 
     private UserManagementDtos.TeachingAssignmentItem toTeachingAssignmentItem(TeachingAssignment assignment) {

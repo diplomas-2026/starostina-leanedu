@@ -107,7 +107,7 @@ export default function TeacherGroupsPage() {
                   <Table.Td>
                     <Group gap="sm">
                       <AppUserAvatar user={student} size={28} />
-                      <Text fw={600}>{student.fullName}</Text>
+                      <Text component={Link} to={`/students/${student.id}`} fw={600}>{student.fullName}</Text>
                     </Group>
                   </Table.Td>
                   <Table.Td>{student.email}</Table.Td>

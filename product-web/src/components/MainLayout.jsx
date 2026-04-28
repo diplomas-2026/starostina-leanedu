@@ -9,24 +9,24 @@ import AppUserAvatar from './AppUserAvatar';
 const LINKS = {
   ADMIN: [
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
-    { to: '/admin/teachers', label: 'Преподаватели', icon: IconUsers },
     { to: '/profile', label: 'Профиль', icon: IconUser },
+    { to: '/admin/teachers', label: 'Преподаватели', icon: IconUsers },
   ],
   TEACHER: [
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
+    { to: '/profile', label: 'Профиль', icon: IconUser },
     { to: '/teacher/disciplines', label: 'Дисциплины', icon: IconBook2 },
     { to: '/lectures', label: 'Лекции', icon: IconBook2 },
     { to: '/tests', label: 'Тесты', icon: IconSparkles },
     { to: '/teacher/groups', label: 'Группы', icon: IconUsers },
     { to: '/gradebook', label: 'Журнал', icon: IconChartBar },
-    { to: '/profile', label: 'Профиль', icon: IconUser },
   ],
   STUDENT: [
     { to: '/dashboard', label: 'Дашборд', icon: IconHome2 },
+    { to: '/profile', label: 'Профиль', icon: IconUser },
     { to: '/lectures', label: 'Лекции', icon: IconBook2 },
     { to: '/tests', label: 'Тесты', icon: IconSparkles },
     { to: '/my-results', label: 'Мои результаты', icon: IconChartBar },
-    { to: '/profile', label: 'Профиль', icon: IconUser },
   ],
 };
 

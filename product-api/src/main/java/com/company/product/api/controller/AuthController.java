@@ -6,6 +6,7 @@ import com.company.product.api.service.CurrentUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -27,5 +28,15 @@ public class AuthController {
     @PutMapping("/me/profile")
     public AuthDtos.UserResponse updateProfile(@Valid @RequestBody AuthDtos.UpdateProfileRequest request) {
         return authService.updateProfile(currentUserService.requireCurrentUser(), request);
+    }
+
+    @PostMapping("/me/avatar")
+    public AuthDtos.UserResponse uploadAvatar(@RequestParam("file") MultipartFile file) {
+        return authService.uploadAvatar(currentUserService.requireCurrentUser(), file);
+    }
+
+    @DeleteMapping("/me/avatar")
+    public AuthDtos.UserResponse removeAvatar() {
+        return authService.removeAvatar(currentUserService.requireCurrentUser());
     }
 }

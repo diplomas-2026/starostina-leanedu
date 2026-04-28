@@ -4,6 +4,14 @@ export const authApi = {
   login: (payload) => api.post('/api/auth/login', payload),
   me: () => api.get('/api/auth/me'),
   updateProfile: (payload) => api.put('/api/auth/me/profile', payload),
+  uploadAvatar: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/api/auth/me/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  removeAvatar: () => api.delete('/api/auth/me/avatar'),
 };
 
 export const lectureApi = {
@@ -56,4 +64,8 @@ export const gradebookApi = {
   groups: () => api.get('/api/gradebook/groups'),
   subjects: (groupId) => api.get('/api/gradebook/subjects', { params: { groupId } }),
   matrix: (groupId, subjectId) => api.get('/api/gradebook/matrix', { params: { groupId, subjectId } }),
+};
+
+export const studentApi = {
+  summary: (studentId) => api.get(`/api/students/${studentId}/summary`),
 };

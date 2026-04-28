@@ -169,6 +169,73 @@ public class UserManagementService {
             .toList();
     }
 
+    public UserManagementDtos.StudentSummary getStudentSummary(AppUser actor, Long studentId) {
+        AppUser student = appUserRepository.findById(studentId)
+            .filter(u -> u.getRole() == Role.STUDENT)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Студент не найден"));
+
+        List<GroupStudent> memberships = groupStudentRepository.findByStudent(student);
+        if (actor.getRole() == Role.STUDENT && !actor.getId().equals(student.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав");
+        }
+        if (actor.getRole() == Role.TEACHER) {
+            boolean allowed = memberships.stream()
+                .map(GroupStudent::getGroup)
+                .anyMatch(group -> teachingAssignmentRepository.existsByTeacherAndGroup(actor, group));
+            if (!allowed) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "Преподаватель не назначен на группы этого студента");
+            }
+        }
+
+        List<UserManagementDtos.StudentGroupItem> groups = memberships.stream()
+            .map(GroupStudent::getGroup)
+            .distinct()
+            .sorted(Comparator.comparing(GroupEntity::getCode, Comparator.nullsLast(String::compareToIgnoreCase)))
+            .map(group -> new UserManagementDtos.StudentGroupItem(group.getId(), group.getCode(), group.getName(), group.getCourseYear()))
+            .toList();
+
+        List<TestAttempt> attempts = testAttemptRepository.findByStudentOrderByStartedAtDesc(student);
+        List<TestAttempt> submitted = attempts.stream()
+            .filter(attempt -> attempt.getStatus() == AttemptStatus.SUBMITTED)
+            .toList();
+
+        int avgGrade = submitted.isEmpty()
+            ? 0
+            : (int) Math.round(submitted.stream()
+                .mapToInt(attempt -> resolveGrade(attempt.getTest().getMinScore3(), attempt.getTest().getMinScore4(), attempt.getTest().getMinScore5(), attempt.getScore()))
+                .average()
+                .orElse(0));
+
+        List<UserManagementDtos.StudentAttemptItem> recentAttempts = attempts.stream()
+            .limit(10)
+            .map(attempt -> new UserManagementDtos.StudentAttemptItem(
+                attempt.getId(),
+                attempt.getTest().getId(),
+                attempt.getTest().getTitle(),
+                attempt.getTest().getSubject() != null ? attempt.getTest().getSubject().getName() : null,
+                attempt.getStatus().name(),
+                attempt.getScore(),
+                attempt.getMaxScore(),
+                attempt.getStatus() == AttemptStatus.SUBMITTED
+                    ? resolveGrade(attempt.getTest().getMinScore3(), attempt.getTest().getMinScore4(), attempt.getTest().getMinScore5(), attempt.getScore())
+                    : null,
+                attempt.getSubmittedAt() != null ? attempt.getSubmittedAt().toString() : null
+            ))
+            .toList();
+
+        return new UserManagementDtos.StudentSummary(
+            student.getId(),
+            student.getFullName(),
+            student.getEmail(),
+            student.getAvatarUrl(),
+            groups.size(),
+            submitted.size(),
+            avgGrade,
+            groups,
+            recentAttempts
+        );
+    }
+
     public UserManagementDtos.TeacherDashboardSummary getTeacherDashboardSummary(AppUser teacher) {
         List<TeachingAssignment> assignments = teachingAssignmentRepository.findByTeacher(teacher);
         List<GroupEntity> groups = assignments.stream()
@@ -304,5 +371,12 @@ public class UserManagementService {
             assignment.getGroup().getCode(),
             assignment.getGroup().getName()
         );
+    }
+
+    private int resolveGrade(int minScore3, int minScore4, int minScore5, int score) {
+        if (score >= minScore5) return 5;
+        if (score >= minScore4) return 4;
+        if (score >= minScore3) return 3;
+        return 2;
     }
 }

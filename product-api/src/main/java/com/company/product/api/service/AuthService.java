@@ -9,6 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +41,32 @@ public class AuthService {
         AppUser persistentUser = appUserRepository.findById(user.getId())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
         persistentUser.setFullName(request.fullName().trim());
-        String avatar = request.avatarUrl() == null ? null : request.avatarUrl().trim();
-        persistentUser.setAvatarUrl(avatar == null || avatar.isEmpty() ? null : avatar);
+        return toUser(appUserRepository.save(persistentUser));
+    }
+
+    public AuthDtos.UserResponse uploadAvatar(AppUser user, MultipartFile file) {
+        AppUser persistentUser = appUserRepository.findById(user.getId())
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Файл не передан");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Можно загрузить только изображение");
+        }
+        try {
+            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+            persistentUser.setAvatarUrl("data:" + contentType + ";base64," + base64);
+            return toUser(appUserRepository.save(persistentUser));
+        } catch (IOException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Не удалось прочитать файл");
+        }
+    }
+
+    public AuthDtos.UserResponse removeAvatar(AppUser user) {
+        AppUser persistentUser = appUserRepository.findById(user.getId())
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
+        persistentUser.setAvatarUrl(null);
         return toUser(appUserRepository.save(persistentUser));
     }
 

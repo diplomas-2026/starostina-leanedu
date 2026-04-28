@@ -7,17 +7,18 @@ import { extractError } from '../utils/errors';
 
 export default function ProfilePage() {
   const { user, refresh } = useAuth();
-  const [form, setForm] = useState({ fullName: '', avatarUrl: '' });
+  const [form, setForm] = useState({ fullName: '' });
+  const [avatarFile, setAvatarFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     setForm({
       fullName: user?.fullName || '',
-      avatarUrl: user?.avatarUrl || '',
     });
-  }, [user?.fullName, user?.avatarUrl]);
+  }, [user?.fullName]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -27,7 +28,6 @@ export default function ProfilePage() {
     try {
       await authApi.updateProfile({
         fullName: form.fullName,
-        avatarUrl: form.avatarUrl || null,
       });
       await refresh();
       setMessage('Профиль обновлён');
@@ -35,6 +35,42 @@ export default function ProfilePage() {
       setError(extractError(err, 'Не удалось сохранить профиль'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const uploadAvatar = async () => {
+    if (!avatarFile) {
+      setError('Выберите файл изображения');
+      return;
+    }
+    setAvatarSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await authApi.uploadAvatar(avatarFile);
+      await refresh();
+      setAvatarFile(null);
+      setMessage('Фото профиля обновлено');
+    } catch (err) {
+      setError(extractError(err, 'Не удалось загрузить фото'));
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    setAvatarSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      await authApi.removeAvatar();
+      await refresh();
+      setAvatarFile(null);
+      setMessage('Фото профиля удалено');
+    } catch (err) {
+      setError(extractError(err, 'Не удалось удалить фото'));
+    } finally {
+      setAvatarSaving(false);
     }
   };
 
@@ -48,7 +84,7 @@ export default function ProfilePage() {
         <form onSubmit={submit}>
           <Stack>
             <Group>
-              <AppUserAvatar user={{ fullName: form.fullName, avatarUrl: form.avatarUrl }} size={72} />
+              <AppUserAvatar user={{ fullName: form.fullName, avatarUrl: user?.avatarUrl }} size={72} />
             </Group>
             <TextInput
               label="ФИО"
@@ -56,12 +92,15 @@ export default function ProfilePage() {
               onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
               required
             />
-            <TextInput
-              label="URL фотографии"
-              placeholder="https://..."
-              value={form.avatarUrl}
-              onChange={(e) => setForm((prev) => ({ ...prev, avatarUrl: e.target.value }))}
-            />
+            <input type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
+            <Group>
+              <Button type="button" variant="light" onClick={uploadAvatar} loading={avatarSaving}>
+                Загрузить фото
+              </Button>
+              <Button type="button" variant="outline" color="red" onClick={removeAvatar} loading={avatarSaving}>
+                Удалить фото
+              </Button>
+            </Group>
             <Button type="submit" loading={saving}>Сохранить</Button>
           </Stack>
         </form>

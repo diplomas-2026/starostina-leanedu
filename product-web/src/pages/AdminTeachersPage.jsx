@@ -1,5 +1,6 @@
 import { Alert, Button, Card, Group, Loader, Select, Stack, Table, Tabs, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminApi } from '../api/services';
 import AppUserAvatar from '../components/AppUserAvatar';
 import { extractError } from '../utils/errors';
@@ -280,7 +281,7 @@ export default function AdminTeachersPage() {
                     <Table.Td>
                       <Group gap="sm">
                         <AppUserAvatar user={student} size={28} />
-                        <Text>{student.fullName}</Text>
+                        <Text component={Link} to={`/students/${student.id}`}>{student.fullName}</Text>
                       </Group>
                     </Table.Td>
                     <Table.Td>{student.email}</Table.Td>

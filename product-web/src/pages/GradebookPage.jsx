@@ -1,6 +1,6 @@
 import { Alert, Badge, Card, Loader, ScrollArea, Select, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { gradebookApi } from '../api/services';
 import { extractError } from '../utils/errors';
 
@@ -169,7 +169,7 @@ export default function GradebookPage() {
                   <Table.Tbody>
                     {matrix.rows.map((row) => (
                       <Table.Tr key={row.studentId}>
-                        <Table.Td>{row.studentName}</Table.Td>
+                        <Table.Td><Text component={Link} to={`/students/${row.studentId}`}>{row.studentName}</Text></Table.Td>
                         {row.cells.map((cell, index) => (
                           <Table.Td key={`${row.studentId}-${matrix.columns[index].assignmentId}`}>
                             {cell.grade ? (

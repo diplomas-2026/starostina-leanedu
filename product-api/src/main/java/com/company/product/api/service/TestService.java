@@ -51,8 +51,12 @@ public class TestService {
         test.setMinScore5(request.minScore5());
         test.setCreatedBy(teacher);
         if (request.lectureId() != null) {
-            test.setLecture(lectureRepository.findById(request.lectureId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена")));
+            Lecture lecture = lectureRepository.findById(request.lectureId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена"));
+            if (lecture.getCreatedBy() == null || !lecture.getCreatedBy().getId().equals(teacher.getId())) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "Можно привязать только свою лекцию");
+            }
+            test.setLecture(lecture);
         }
         test = learningTestRepository.save(test);
 
@@ -78,13 +82,8 @@ public class TestService {
         if (user.getRole() == Role.STUDENT) {
             tests = learningTestRepository.findByPublishedTrue();
         } else if (user.getRole() == Role.TEACHER) {
-            List<Long> teacherSubjectIds = teachingAssignmentRepository.findByTeacher(user).stream()
-                .map(ta -> ta.getSubject().getId())
-                .distinct()
-                .toList();
             tests = learningTestRepository.findAll().stream()
-                .filter(test -> test.getCreatedBy() != null && test.getCreatedBy().getId().equals(user.getId())
-                    || (test.getSubject() != null && teacherSubjectIds.contains(test.getSubject().getId())))
+                .filter(test -> test.getCreatedBy() != null && test.getCreatedBy().getId().equals(user.getId()))
                 .toList();
         } else {
             tests = learningTestRepository.findAll();
@@ -95,12 +94,7 @@ public class TestService {
     public TestDtos.TestDetailsItem getTestDetails(Long testId, AppUser user) {
         LearningTest test = getTestOrThrow(testId);
         if (user.getRole() == Role.TEACHER) {
-            boolean allowed = test.getCreatedBy() != null && test.getCreatedBy().getId().equals(user.getId());
-            if (!allowed && test.getSubject() != null) {
-                allowed = teachingAssignmentRepository.findByTeacher(user).stream()
-                    .anyMatch(ta -> ta.getSubject().getId().equals(test.getSubject().getId()));
-            }
-            if (!allowed) {
+            if (test.getCreatedBy() == null || !test.getCreatedBy().getId().equals(user.getId())) {
                 throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав для просмотра теста");
             }
         }
@@ -143,14 +137,20 @@ public class TestService {
         );
     }
 
-    public void publishTest(Long testId) {
+    public void publishTest(Long testId, AppUser teacher) {
         LearningTest test = getTestOrThrow(testId);
+        if (test.getCreatedBy() == null || !test.getCreatedBy().getId().equals(teacher.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав для публикации теста");
+        }
         test.setPublished(true);
         learningTestRepository.save(test);
     }
 
-    public void addQuestion(Long testId, TestDtos.AddQuestionRequest request) {
+    public void addQuestion(Long testId, TestDtos.AddQuestionRequest request, AppUser teacher) {
         LearningTest test = getTestOrThrow(testId);
+        if (test.getCreatedBy() == null || !test.getCreatedBy().getId().equals(teacher.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав для изменения теста");
+        }
         Question question = new Question();
         question.setTest(test);
         question.setText(request.text());
@@ -169,6 +169,9 @@ public class TestService {
 
     public void assignTest(Long testId, TestDtos.AssignTestRequest request, AppUser teacher) {
         LearningTest test = getTestOrThrow(testId);
+        if (test.getCreatedBy() == null || !test.getCreatedBy().getId().equals(teacher.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав для назначения теста");
+        }
         GroupEntity group = groupRepository.findById(request.groupId())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
         if (test.getSubject() == null) {
@@ -280,9 +283,11 @@ public class TestService {
             .toList();
     }
 
-    public List<TestDtos.GradebookItem> listGradebook() {
+    public List<TestDtos.GradebookItem> listGradebook(AppUser user) {
         return testAttemptRepository.findAll().stream()
             .filter(a -> a.getStatus() == AttemptStatus.SUBMITTED)
+            .filter(a -> user.getRole() == Role.ADMIN
+                || (a.getTest().getCreatedBy() != null && a.getTest().getCreatedBy().getId().equals(user.getId())))
             .map(a -> new TestDtos.GradebookItem(
                 a.getId(),
                 a.getStudent().getFullName(),
@@ -349,6 +354,12 @@ public class TestService {
             .toList();
 
         List<TestAssignment> assignments = testAssignmentRepository.findByGroupAndTestSubjectAndActiveTrueOrderByDueAtAsc(group, subject);
+        if (user.getRole() == Role.TEACHER) {
+            assignments = assignments.stream()
+                .filter(assignment -> assignment.getTest().getCreatedBy() != null
+                    && assignment.getTest().getCreatedBy().getId().equals(user.getId()))
+                .toList();
+        }
         List<LearningTest> tests = assignments.stream()
             .map(TestAssignment::getTest)
             .distinct()

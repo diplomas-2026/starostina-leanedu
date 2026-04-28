@@ -25,18 +25,20 @@ export const testApi = {
 };
 
 export const teacherApi = {
-  createStudent: (payload) => api.post('/api/teacher/students', payload),
-  students: () => api.get('/api/teacher/students'),
   groups: (subjectId) => api.get('/api/teacher/groups', { params: subjectId ? { subjectId } : {} }),
+  groupStudents: (groupId) => api.get(`/api/teacher/groups/${groupId}/students`),
   subjects: (groupId) => api.get('/api/teacher/subjects', { params: groupId ? { groupId } : {} }),
   disciplines: (groupId) => api.get('/api/teacher/disciplines', { params: groupId ? { groupId } : {} }),
-  addStudentToGroup: (groupId, studentId) => api.post(`/api/teacher/groups/${groupId}/students/${studentId}`),
+  dashboardSummary: () => api.get('/api/teacher/dashboard-summary'),
 };
 
 export const adminApi = {
   createTeacher: (payload) => api.post('/api/admin/teachers', payload),
+  createStudent: (payload) => api.post('/api/admin/students', payload),
   users: (role) => api.get('/api/admin/users', { params: role ? { role } : {} }),
   groups: () => api.get('/api/admin/groups'),
+  groupStudents: (groupId) => api.get(`/api/admin/groups/${groupId}/students`),
+  addStudentToGroup: (groupId, studentId) => api.post(`/api/admin/groups/${groupId}/students/${studentId}`),
   subjects: () => api.get('/api/admin/subjects'),
   createSubject: (payload) => api.post('/api/admin/subjects', payload),
   teachingAssignments: () => api.get('/api/admin/teaching-assignments'),

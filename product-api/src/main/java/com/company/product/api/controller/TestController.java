@@ -38,13 +38,13 @@ public class TestController {
     @PatchMapping("/{id}/publish")
     @PreAuthorize("hasRole('TEACHER')")
     public void publish(@PathVariable Long id) {
-        testService.publishTest(id);
+        testService.publishTest(id, currentUserService.requireCurrentUser());
     }
 
     @PostMapping("/{id}/questions")
     @PreAuthorize("hasRole('TEACHER')")
     public void addQuestion(@PathVariable Long id, @Valid @RequestBody TestDtos.AddQuestionRequest request) {
-        testService.addQuestion(id, request);
+        testService.addQuestion(id, request, currentUserService.requireCurrentUser());
     }
 
     @PostMapping("/{id}/assignments")

@@ -27,6 +27,11 @@ public class AdminController {
         return userManagementService.listUsers(role);
     }
 
+    @PostMapping("/students")
+    public UserManagementDtos.UserItem createStudent(@Valid @RequestBody UserManagementDtos.CreateStudentRequest request) {
+        return userManagementService.createStudent(request);
+    }
+
     @GetMapping("/groups")
     public List<UserManagementDtos.GroupItem> listGroups() {
         return userManagementService.listGroups();
@@ -50,5 +55,15 @@ public class AdminController {
     @GetMapping("/teaching-assignments")
     public List<UserManagementDtos.TeachingAssignmentItem> listTeachingAssignments() {
         return userManagementService.listTeachingAssignments();
+    }
+
+    @PostMapping("/groups/{groupId}/students/{studentId}")
+    public void addStudentToGroup(@PathVariable Long groupId, @PathVariable Long studentId) {
+        userManagementService.addStudentToGroup(groupId, studentId);
+    }
+
+    @GetMapping("/groups/{groupId}/students")
+    public List<UserManagementDtos.UserItem> listGroupStudents(@PathVariable Long groupId) {
+        return userManagementService.listStudentsInGroup(groupId);
     }
 }

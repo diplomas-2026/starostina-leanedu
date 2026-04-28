@@ -1,9 +1,11 @@
 import { Alert, Badge, Card, Loader, ScrollArea, Select, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { gradebookApi } from '../api/services';
 import { extractError } from '../utils/errors';
 
 export default function GradebookPage() {
+  const [searchParams] = useSearchParams();
   const [groups, setGroups] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [subjects, setSubjects] = useState([]);
@@ -25,7 +27,10 @@ export default function GradebookPage() {
           label: `${group.code} — ${group.name}`,
         }));
         setGroups(options);
-        if (options.length > 0) {
+        const queryGroupId = searchParams.get('groupId');
+        if (queryGroupId && options.some((option) => option.value === queryGroupId)) {
+          setSelectedGroupId(queryGroupId);
+        } else if (options.length > 0) {
           setSelectedGroupId(options[0].value);
         }
       } catch (err) {
@@ -35,7 +40,7 @@ export default function GradebookPage() {
       }
     };
     loadGroups();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!selectedGroupId) {

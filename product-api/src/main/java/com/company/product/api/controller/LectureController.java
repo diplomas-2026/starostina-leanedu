@@ -38,12 +38,12 @@ public class LectureController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('TEACHER')")
     public LectureDtos.LectureItem update(@PathVariable Long id, @Valid @RequestBody LectureDtos.LectureRequest request) {
-        return lectureService.update(id, request);
+        return lectureService.update(id, request, currentUserService.requireCurrentUser());
     }
 
     @PatchMapping("/{id}/publish")
     @PreAuthorize("hasRole('TEACHER')")
     public LectureDtos.LectureItem publish(@PathVariable Long id) {
-        return lectureService.publish(id);
+        return lectureService.publish(id, currentUserService.requireCurrentUser());
     }
 }

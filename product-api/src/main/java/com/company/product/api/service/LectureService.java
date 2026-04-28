@@ -18,14 +18,24 @@ public class LectureService {
     private final LectureRepository lectureRepository;
 
     public List<LectureDtos.LectureItem> list(AppUser user) {
-        List<Lecture> lectures = user.getRole() == Role.STUDENT ? lectureRepository.findByPublishedTrue() : lectureRepository.findAll();
+        List<Lecture> lectures;
+        if (user.getRole() == Role.STUDENT) {
+            lectures = lectureRepository.findByPublishedTrue();
+        } else if (user.getRole() == Role.TEACHER) {
+            lectures = lectureRepository.findByCreatedBy(user);
+        } else {
+            lectures = lectureRepository.findAll();
+        }
         return lectures.stream().map(this::toItem).toList();
     }
 
     public LectureDtos.LectureItem getById(Long id, AppUser user) {
         Lecture lecture = lectureRepository.findById(id)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена"));
-        if (!lecture.isPublished() && user.getRole() == Role.STUDENT) {
+        if (user.getRole() == Role.STUDENT && !lecture.isPublished()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав");
+        }
+        if (user.getRole() == Role.TEACHER && (lecture.getCreatedBy() == null || !lecture.getCreatedBy().getId().equals(user.getId()))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав");
         }
         return toItem(lecture);
@@ -43,9 +53,12 @@ public class LectureService {
         return toItem(lectureRepository.save(lecture));
     }
 
-    public LectureDtos.LectureItem update(Long id, LectureDtos.LectureRequest request) {
+    public LectureDtos.LectureItem update(Long id, LectureDtos.LectureRequest request, AppUser teacher) {
         Lecture lecture = lectureRepository.findById(id)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена"));
+        if (lecture.getCreatedBy() == null || !lecture.getCreatedBy().getId().equals(teacher.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав");
+        }
         lecture.setTitle(request.title());
         lecture.setSummary(request.summary());
         lecture.setContent(request.content());
@@ -53,9 +66,12 @@ public class LectureService {
         return toItem(lectureRepository.save(lecture));
     }
 
-    public LectureDtos.LectureItem publish(Long id) {
+    public LectureDtos.LectureItem publish(Long id, AppUser teacher) {
         Lecture lecture = lectureRepository.findById(id)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Лекция не найдена"));
+        if (lecture.getCreatedBy() == null || !lecture.getCreatedBy().getId().equals(teacher.getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Недостаточно прав");
+        }
         lecture.setPublished(true);
         lecture.setUpdatedAt(OffsetDateTime.now());
         return toItem(lectureRepository.save(lecture));

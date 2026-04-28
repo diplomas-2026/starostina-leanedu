@@ -15,7 +15,7 @@ const LINKS = {
     { to: '/teacher/disciplines', label: 'Дисциплины', icon: IconBook2 },
     { to: '/lectures', label: 'Лекции', icon: IconBook2 },
     { to: '/tests', label: 'Тесты', icon: IconSparkles },
-    { to: '/teacher/students', label: 'Студенты', icon: IconUsers },
+    { to: '/teacher/groups', label: 'Группы', icon: IconUsers },
     { to: '/gradebook', label: 'Журнал', icon: IconChartBar },
   ],
   STUDENT: [

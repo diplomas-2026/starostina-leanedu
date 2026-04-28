@@ -22,7 +22,7 @@ public class GradebookController {
 
     @GetMapping
     public List<TestDtos.GradebookItem> list() {
-        return testService.listGradebook();
+        return testService.listGradebook(currentUserService.requireCurrentUser());
     }
 
     @GetMapping("/groups")

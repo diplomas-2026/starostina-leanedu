@@ -1,6 +1,6 @@
 import { Alert, Card, Grid, Group, Loader, Progress, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { lectureApi, teacherApi, testApi } from '../api/services';
+import { adminApi, lectureApi, teacherApi, testApi } from '../api/services';
 import { GradeBadge, RoleBadge } from '../components/SemanticBadges';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
@@ -9,6 +9,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [summary, setSummary] = useState(null);
   const [studentSummary, setStudentSummary] = useState(null);
+  const [adminSummary, setAdminSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,6 +22,7 @@ export default function DashboardPage() {
           const { data } = await teacherApi.dashboardSummary();
           setSummary(data);
           setStudentSummary(null);
+          setAdminSummary(null);
         } else if (user?.role === 'STUDENT') {
           const [{ data: attempts }, { data: tests }, { data: lectures }] = await Promise.all([
             testApi.myAttempts(),
@@ -39,9 +41,38 @@ export default function DashboardPage() {
             avgGrade,
           });
           setSummary(null);
+          setAdminSummary(null);
+        } else if (user?.role === 'ADMIN') {
+          const [{ data: users }, { data: groups }, { data: subjects }, { data: assignments }] = await Promise.all([
+            adminApi.users(),
+            adminApi.groups(),
+            adminApi.subjects(),
+            adminApi.teachingAssignments(),
+          ]);
+          const teachers = users.filter((item) => item.role === 'TEACHER');
+          const students = users.filter((item) => item.role === 'STUDENT');
+          const activeUsers = users.filter((item) => item.active);
+          const inactiveUsers = users.filter((item) => !item.active);
+          const avgAssignmentsPerTeacher = teachers.length > 0 ? (assignments.length / teachers.length).toFixed(2) : '0.00';
+          const avgAssignmentsPerGroup = groups.length > 0 ? (assignments.length / groups.length).toFixed(2) : '0.00';
+          setAdminSummary({
+            usersCount: users.length,
+            activeUsersCount: activeUsers.length,
+            inactiveUsersCount: inactiveUsers.length,
+            teachersCount: teachers.length,
+            studentsCount: students.length,
+            groupsCount: groups.length,
+            subjectsCount: subjects.length,
+            assignmentsCount: assignments.length,
+            avgAssignmentsPerTeacher,
+            avgAssignmentsPerGroup,
+          });
+          setSummary(null);
+          setStudentSummary(null);
         } else {
           setSummary(null);
           setStudentSummary(null);
+          setAdminSummary(null);
         }
       } catch (err) {
         setError(extractError(err, 'Не удалось загрузить данные дашборда'));
@@ -66,6 +97,79 @@ export default function DashboardPage() {
             <RoleBadge role={user?.role} />
           </Group>
         </Card>
+      )}
+
+      {user?.role === 'ADMIN' && adminSummary && (
+        <>
+          <Alert color="blue">
+            Панель администратора показывает состояние системы: пользователи, группы, дисциплины и учебные назначения.
+          </Alert>
+          <Grid>
+            <Grid.Col span={{ base: 12, md: 3 }}>
+              <Card withBorder>
+                <Text size="sm" c="dimmed">Пользователи</Text>
+                <Text fw={700} size="xl">{adminSummary.usersCount}</Text>
+                <Text size="xs" c="dimmed">Всего учетных записей</Text>
+              </Card>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 3 }}>
+              <Card withBorder>
+                <Text size="sm" c="dimmed">Преподаватели</Text>
+                <Text fw={700} size="xl">{adminSummary.teachersCount}</Text>
+                <Text size="xs" c="dimmed">Учетные записи роли преподаватель</Text>
+              </Card>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 3 }}>
+              <Card withBorder>
+                <Text size="sm" c="dimmed">Студенты</Text>
+                <Text fw={700} size="xl">{adminSummary.studentsCount}</Text>
+                <Text size="xs" c="dimmed">Учетные записи роли студент</Text>
+              </Card>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 3 }}>
+              <Card withBorder>
+                <Text size="sm" c="dimmed">Назначения</Text>
+                <Text fw={700} size="xl">{adminSummary.assignmentsCount}</Text>
+                <Text size="xs" c="dimmed">Связки преподаватель-дисциплина-группа</Text>
+              </Card>
+            </Grid.Col>
+          </Grid>
+
+          <Grid>
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Card withBorder>
+                <Text size="sm" c="dimmed">Группы</Text>
+                <Text fw={700} size="xl">{adminSummary.groupsCount}</Text>
+              </Card>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Card withBorder>
+                <Text size="sm" c="dimmed">Дисциплины</Text>
+                <Text fw={700} size="xl">{adminSummary.subjectsCount}</Text>
+              </Card>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Card withBorder>
+                <Text size="sm" c="dimmed">Деактивированные пользователи</Text>
+                <Text fw={700} size="xl">{adminSummary.inactiveUsersCount}</Text>
+              </Card>
+            </Grid.Col>
+          </Grid>
+
+          <Card withBorder>
+            <Stack gap="sm">
+              <Text fw={600}>Операционная сводка</Text>
+              <Text size="sm" c="dimmed">Активных пользователей: {adminSummary.activeUsersCount} из {adminSummary.usersCount}</Text>
+              <Progress
+                value={adminSummary.usersCount > 0 ? (adminSummary.activeUsersCount / adminSummary.usersCount) * 100 : 0}
+                color="teal"
+                size="lg"
+              />
+              <Text size="sm" c="dimmed">Среднее назначений на преподавателя: {adminSummary.avgAssignmentsPerTeacher}</Text>
+              <Text size="sm" c="dimmed">Среднее назначений на группу: {adminSummary.avgAssignmentsPerGroup}</Text>
+            </Stack>
+          </Card>
+        </>
       )}
 
       {user?.role === 'STUDENT' && studentSummary && (

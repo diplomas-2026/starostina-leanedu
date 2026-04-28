@@ -13,6 +13,7 @@ import AdminTeachersPage from './pages/AdminTeachersPage';
 import TeacherGroupsPage from './pages/TeacherGroupsPage';
 import GradebookPage from './pages/GradebookPage';
 import TeacherDisciplinesPage from './pages/TeacherDisciplinesPage';
+import TeacherDisciplineDetailsPage from './pages/TeacherDisciplineDetailsPage';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/tests/new" element={<CreateTestPage />} />
             <Route path="/tests/:id" element={<TestDetailsPage />} />
             <Route path="/teacher/disciplines" element={<TeacherDisciplinesPage />} />
+            <Route path="/teacher/disciplines/:subjectId" element={<TeacherDisciplineDetailsPage />} />
             <Route path="/gradebook" element={<GradebookPage />} />
             <Route path="/teacher/groups" element={<TeacherGroupsPage />} />
           </Route>

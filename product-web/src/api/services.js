@@ -6,7 +6,7 @@ export const authApi = {
 };
 
 export const lectureApi = {
-  list: () => api.get('/api/lectures'),
+  list: (subjectId) => api.get('/api/lectures', { params: subjectId ? { subjectId } : {} }),
   get: (id) => api.get(`/api/lectures/${id}`),
   create: (payload) => api.post('/api/lectures', payload),
   publish: (id) => api.patch(`/api/lectures/${id}/publish`),

@@ -1,7 +1,7 @@
-import { Alert, Badge, Button, Card, Group, Loader, Modal, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Alert, Badge, Button, Card, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { lectureApi } from '../api/services';
+import { Link, useSearchParams } from 'react-router-dom';
+import { lectureApi, teacherApi } from '../api/services';
 import LectureEditor from '../components/LectureEditor';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
@@ -9,23 +9,28 @@ import { publishStatusLabel } from '../utils/labels';
 
 export default function LecturesPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState([]);
+  const [disciplines, setDisciplines] = useState([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingDisciplines, setLoadingDisciplines] = useState(false);
   const [saving, setSaving] = useState(false);
   const [createOpened, setCreateOpened] = useState(false);
   const [form, setForm] = useState({
     title: '',
     summary: '',
     content: '<p>Введите текст лекции...</p>',
+    subjectId: '',
   });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  const loadData = async () => {
+  const loadData = async (subjectIdParam = selectedSubjectId) => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await lectureApi.list();
+      const { data } = await lectureApi.list(subjectIdParam || undefined);
       setItems(data);
     } catch (err) {
       setError(extractError(err, 'Не удалось загрузить лекции'));
@@ -35,8 +40,49 @@ export default function LecturesPage() {
   };
 
   useEffect(() => {
-    loadData();
+    const loadDisciplines = async () => {
+      if (user?.role !== 'TEACHER') {
+        return;
+      }
+      setLoadingDisciplines(true);
+      try {
+        const { data } = await teacherApi.disciplines();
+        const options = data.map((subject) => ({
+          value: String(subject.id),
+          label: `${subject.code} — ${subject.name}`,
+        }));
+        setDisciplines(options);
+        const querySubjectId = searchParams.get('subjectId');
+        const selected = querySubjectId && options.some((item) => item.value === querySubjectId)
+          ? querySubjectId
+          : options[0]?.value || '';
+        setSelectedSubjectId(selected);
+        setForm((prev) => ({ ...prev, subjectId: selected }));
+        await loadData(selected);
+      } catch (err) {
+        setError(extractError(err, 'Не удалось загрузить дисциплины преподавателя'));
+      } finally {
+        setLoadingDisciplines(false);
+      }
+    };
+
+    if (user?.role === 'TEACHER') {
+      loadDisciplines();
+      return;
+    }
+    loadData('');
   }, []);
+
+  useEffect(() => {
+    if (user?.role !== 'TEACHER') {
+      return;
+    }
+    if (!selectedSubjectId) {
+      setItems([]);
+      return;
+    }
+    loadData(selectedSubjectId);
+  }, [selectedSubjectId]);
 
   const handleCreateLecture = async (e) => {
     e.preventDefault();
@@ -44,15 +90,19 @@ export default function LecturesPage() {
     setError('');
     setMessage('');
     try {
-      await lectureApi.create(form);
+      await lectureApi.create({
+        ...form,
+        subjectId: Number(form.subjectId),
+      });
       setMessage('Лекция создана в статусе черновика');
       setCreateOpened(false);
       setForm({
         title: '',
         summary: '',
         content: '<p>Введите текст лекции...</p>',
+        subjectId: selectedSubjectId,
       });
-      await loadData();
+      await loadData(selectedSubjectId);
     } catch (err) {
       setError(extractError(err, 'Не удалось создать лекцию'));
     } finally {
@@ -67,20 +117,38 @@ export default function LecturesPage() {
         {user?.role === 'TEACHER' && (
           <Group>
             <Button onClick={() => setCreateOpened(true)}>Создать лекцию</Button>
-            <Button variant="light" onClick={loadData}>Обновить</Button>
+            <Button variant="light" onClick={() => loadData(selectedSubjectId)}>Обновить</Button>
           </Group>
         )}
       </Group>
 
       {message && <Alert color="green">{message}</Alert>}
-      {loading && <Loader color="teal" />}
+      {(loading || loadingDisciplines) && <Loader color="teal" />}
       {error && <Alert color="red">{error}</Alert>}
+
+      {user?.role === 'TEACHER' && (
+        <Card withBorder>
+          <Select
+            label="Дисциплина"
+            data={disciplines}
+            value={selectedSubjectId}
+            onChange={(value) => {
+              const next = value || '';
+              setSelectedSubjectId(next);
+              setForm((prev) => ({ ...prev, subjectId: next }));
+            }}
+            searchable
+            nothingFoundMessage="Дисциплины не найдены"
+          />
+        </Card>
+      )}
       {items.map((lecture) => (
         <Card key={lecture.id} withBorder radius="md" shadow="sm">
           <Group justify="space-between" align="start">
             <Stack gap={4}>
               <Text fw={700}>{lecture.title}</Text>
               <Text size="sm" c="dimmed">{lecture.summary}</Text>
+              <Text size="xs" c="dimmed">Дисциплина: {lecture.subjectName || '—'}</Text>
               <Badge size="sm" variant="light">
                 {publishStatusLabel(lecture.published)}
               </Badge>
@@ -109,6 +177,15 @@ export default function LecturesPage() {
               label="Краткое описание"
               value={form.summary}
               onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))}
+              required
+            />
+            <Select
+              label="Дисциплина"
+              data={disciplines}
+              value={form.subjectId}
+              onChange={(value) => setForm((prev) => ({ ...prev, subjectId: value || '' }))}
+              searchable
+              nothingFoundMessage="Дисциплины не найдены"
               required
             />
 

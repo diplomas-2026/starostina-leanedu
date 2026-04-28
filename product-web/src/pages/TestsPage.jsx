@@ -1,6 +1,6 @@
 import { Alert, Button, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { testApi } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { extractError } from '../utils/errors';
@@ -8,6 +8,7 @@ import { publishStatusLabel } from '../utils/labels';
 
 export default function TestsPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -18,7 +19,12 @@ export default function TestsPage() {
     setError('');
     try {
       const { data } = await testApi.list();
-      setItems(data);
+      const subjectId = searchParams.get('subjectId');
+      if (subjectId && user?.role !== 'STUDENT') {
+        setItems(data.filter((test) => String(test.subjectId) === subjectId));
+      } else {
+        setItems(data);
+      }
     } catch (err) {
       setError(extractError(err, 'Не удалось загрузить тесты'));
     } finally {
@@ -28,7 +34,7 @@ export default function TestsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [searchParams, user?.role]);
 
   const startAttempt = async (testId) => {
     setError('');
@@ -46,7 +52,7 @@ export default function TestsPage() {
       <Group justify="space-between">
         <Title order={2}>Тесты</Title>
         {user?.role === 'TEACHER' && (
-          <Button component={Link} to="/tests/new">
+          <Button component={Link} to={`/tests/new${searchParams.get('subjectId') ? `?subjectId=${searchParams.get('subjectId')}` : ''}`}>
             Создать тест
           </Button>
         )}

@@ -1,11 +1,12 @@
 import { Alert, Button, Card, Group, Loader, MultiSelect, NumberInput, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { teacherApi, testApi } from '../api/services';
 import { extractError } from '../utils/errors';
 
 export default function CreateTestPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -37,7 +38,11 @@ export default function CreateTestPage() {
         }));
         setSubjects(options);
         if (options.length > 0) {
-          setForm((prev) => ({ ...prev, subjectId: options[0].value }));
+          const subjectIdFromQuery = searchParams.get('subjectId');
+          const selected = subjectIdFromQuery && options.some((item) => item.value === subjectIdFromQuery)
+            ? subjectIdFromQuery
+            : options[0].value;
+          setForm((prev) => ({ ...prev, subjectId: selected }));
         }
       } catch (err) {
         setError(extractError(err, 'Не удалось загрузить дисциплины преподавателя'));
@@ -46,7 +51,7 @@ export default function CreateTestPage() {
       }
     };
     loadSubjects();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!form.subjectId) {

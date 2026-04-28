@@ -19,8 +19,8 @@ public class LectureController {
     private final CurrentUserService currentUserService;
 
     @GetMapping
-    public List<LectureDtos.LectureItem> list() {
-        return lectureService.list(currentUserService.requireCurrentUser());
+    public List<LectureDtos.LectureItem> list(@RequestParam(required = false) Long subjectId) {
+        return lectureService.list(currentUserService.requireCurrentUser(), subjectId);
     }
 
     @GetMapping("/{id}")

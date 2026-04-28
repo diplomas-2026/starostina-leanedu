@@ -1,5 +1,6 @@
-import { Alert, Card, Loader, Stack, Table, Text, Title } from '@mantine/core';
+import { Alert, Card, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { teacherApi } from '../api/services';
 import { extractError } from '../utils/errors';
 
@@ -41,6 +42,7 @@ export default function TeacherDisciplinesPage() {
               <Table.Tr>
                 <Table.Th>Код</Table.Th>
                 <Table.Th>Дисциплина</Table.Th>
+                <Table.Th />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -49,6 +51,13 @@ export default function TeacherDisciplinesPage() {
                   <Table.Td>{item.code}</Table.Td>
                   <Table.Td>
                     <Text fw={600}>{item.name}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Group justify="flex-end">
+                      <Text component={Link} to={`/teacher/disciplines/${item.id}`} c="teal" fw={600}>
+                        Открыть
+                      </Text>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               ))}

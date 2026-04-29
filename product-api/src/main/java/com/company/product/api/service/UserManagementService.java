@@ -148,8 +148,9 @@ public class UserManagementService {
     public UserManagementDtos.GroupItem updateGroup(Long groupId, UserManagementDtos.UpdateGroupRequest request) {
         GroupEntity group = groupRepository.findById(groupId)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Группа не найдена"));
+        final Long currentGroupId = group.getId();
         groupRepository.findByCodeIgnoreCase(request.code().trim())
-            .filter(existing -> !existing.getId().equals(group.getId()))
+            .filter(existing -> !existing.getId().equals(currentGroupId))
             .ifPresent(existing -> {
                 throw new ApiException(HttpStatus.CONFLICT, "Группа с таким кодом уже существует");
             });

@@ -1,0 +1,7 @@
+digraph single_table {
+  graph [rankdir=TB, fontsize=18];
+  node [shape=plain, fontname="Arial"];
+  label="starostina-leanedu — teaching_assignments";
+  labelloc=t;
+  "teaching_assignments" [label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6"><TR><TD BGCOLOR="#eeeeee" COLSPAN="3"><B>teaching_assignments</B></TD></TR><TR><TD><B>Поле</B></TD><TD><B>Тип</B></TD><TD><B>Модификаторы</B></TD></TR><TR><TD ALIGN="LEFT">id</TD><TD ALIGN="LEFT">bigint(64,0)</TD><TD ALIGN="LEFT">PK, NOT NULL, DEFAULT nextval(&#x27;teaching_assignments_id_seq&#x27;::regclass)</TD></TR><TR><TD ALIGN="LEFT">group_id</TD><TD ALIGN="LEFT">bigint(64,0)</TD><TD ALIGN="LEFT">NOT NULL, UNIQUE, FK → groups.id</TD></TR><TR><TD ALIGN="LEFT">subject_id</TD><TD ALIGN="LEFT">bigint(64,0)</TD><TD ALIGN="LEFT">NOT NULL, UNIQUE, FK → subjects.id</TD></TR><TR><TD ALIGN="LEFT">teacher_id</TD><TD ALIGN="LEFT">bigint(64,0)</TD><TD ALIGN="LEFT">NOT NULL, UNIQUE, FK → users.id</TD></TR></TABLE>>];
+}

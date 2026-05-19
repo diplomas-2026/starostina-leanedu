@@ -2,7 +2,6 @@ package com.company.product.api.config;
 
 import com.company.product.api.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,7 +30,6 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authProvider)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/**/swagger-ui/**", "/**/v3/api-docs/**", "/**/v3/api-docs.yaml", "/**/webjars/**").permitAll()
                 .requestMatchers(
                     "/api/auth/**",
                     "/swagger-ui/**",
